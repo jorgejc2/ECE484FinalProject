@@ -4,6 +4,17 @@ class Stanley_Camera(Stanley):
 
     def __init__(self):
         super().__init__()
+        self.camera_waypoints = []
+
+    def update_origin(self):
+        """
+        Description: self.olat and self.olon are hardcoded to a specific coordinate in the high bay. Run
+        this code before starting the stanely controller so that the origin reference point is aligned to the
+        car's actual position.
+        """
+        self.olat = self.lat
+        self.olon = self.lon
+        return
 
     def start_stanley(self):
         while not rospy.is_shutdown():
