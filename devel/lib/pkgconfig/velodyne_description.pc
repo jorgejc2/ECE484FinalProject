@@ -1,4 +1,4 @@
-prefix=/home/ece484/Documents/ECE484/mp-release-22fa/devel
+prefix=/home/ece484/Documents/ECE484/ece484finalhwproject/devel
 
 Name: velodyne_description
 Description: Description of velodyne_description

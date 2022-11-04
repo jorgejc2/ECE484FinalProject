@@ -7,7 +7,5 @@
 # new environment variables
 
 # modified environment variables
-export CMAKE_PREFIX_PATH="/home/ece484/Documents/ECE484/mp-release-22fa/devel:$CMAKE_PREFIX_PATH"
-export PWD='/home/ece484/Documents/ECE484/mp-release-22fa/build'
-export ROSLISP_PACKAGE_DIRECTORIES='/home/ece484/Documents/ECE484/mp-release-22fa/devel/share/common-lisp'
-export ROS_PACKAGE_PATH="/home/ece484/Documents/ECE484/mp-release-22fa/src:$ROS_PACKAGE_PATH"
+export PWD='/home/ece484/Documents/ECE484/ece484finalhwproject/build'
+export ROS_PACKAGE_PATH='/home/ece484/Documents/ECE484/mp-release-22fa/src:/home/ece484/Documents/ECE484/ece484finalhwproject/src:/opt/ros/noetic/share'
