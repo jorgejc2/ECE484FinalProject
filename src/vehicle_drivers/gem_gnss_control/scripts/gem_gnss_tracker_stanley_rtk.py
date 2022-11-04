@@ -29,6 +29,9 @@ from ackermann_msgs.msg import AckermannDrive
 from std_msgs.msg import String, Bool, Float32, Float64
 from novatel_gps_msgs.msg import NovatelPosition, NovatelXYZ, Inspva
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
+
 
 # GEM PACMod Headers
 from pacmod_msgs.msg import PositionWithSpeed, PacmodCmd, SystemRptFloat, VehicleSpeedRpt
@@ -125,6 +128,8 @@ class Stanley(object):
 
         self.stanley_pub = rospy.Publisher('/gem/stanley_gnss_cmd', AckermannDrive, queue_size=1)
 
+        self.waypoint = rospy.Subscriber('waypoint', numpy_msg(Floats) , self.waypoint_callback)
+
         self.ackermann_msg                         = AckermannDrive()
         self.ackermann_msg.steering_angle_velocity = 0.0
         self.ackermann_msg.acceleration            = 0.0
@@ -145,6 +150,11 @@ class Stanley(object):
         self.lat     = inspva_msg.latitude  # latitude
         self.lon     = inspva_msg.longitude # longitude
         self.heading = inspva_msg.azimuth   # heading in degrees
+
+    def waypoint_callback(self, msg):
+        self.waypoint_x = msg[0]
+        self.waypoint_y = msg[1]
+        self.waypoint_heading = msg[2]
 
 
     # Get vehicle speed

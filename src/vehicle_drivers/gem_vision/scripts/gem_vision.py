@@ -26,9 +26,13 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from std_msgs.msg import String, Float64
+from rospy.numpy_msg import numpy_msg
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
+from lane_detector import lanenet_detector
+from line_fit import line_fit
+from rospy_tutorials.msg import Floats
 
 
 class ImageConverter:
@@ -47,6 +51,7 @@ class ImageConverter:
         self.image_sub = rospy.Subscriber("/zed2/zed_node/left/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/front_camera/image_processed", Image, queue_size=1)
 
+        self.waypoint = rospy.Publisher('waypoint', numpy_msg(Floats) , queue_size=1)
 
     def image_callback(self, ros_image):
 
@@ -60,8 +65,16 @@ class ImageConverter:
 
         pub_image = np.copy(frame)
 
+        test = lanenet_detector()
+        combined = test.combinedBinaryImage(pub_img)
 
 
+        output, x, y = test.perspective_transform(np.float32(combined))
+
+        line_fit_dict = line_fit(output)
+
+        a = numpy.array([line_fit_dict['waypoint_x'] , line_fit_dict['waypoint_y'], line_fit_dict['waypoint_heading']])
+        waypoint.publish(a)
 
         # ----------------------------------------------------------------------
 
