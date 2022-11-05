@@ -5,7 +5,16 @@ class Stanley_Camera(Stanley):
     def __init__(self):
         super().__init__()
         self.camera_waypoints = []
+        self.camera_waypoints_x = []
+        self.camera_waypoints_y = []
+        self.camera_waypoints_heading = []
+        self.camera_waypoints = rospy.Subscriber('waypoint', numpy_msg(Floats) , self.waypoint_callback)
         self.curr_idx = 0
+
+    def waypoint_callback(self, msg):
+        self.camera_waypoints_x = msg[0]
+        self.camera_waypoints_y = msg[1]
+        self.camera_waypoints_heading = msg[2]
 
     def update_origin(self):
         """
@@ -20,22 +29,25 @@ class Stanley_Camera(Stanley):
     def start_stanley_camera(self):
         while not rospy.is_shutdown():
 
-            self.path_points_x   = np.array(self.path_points_lon_x)
-            self.path_points_y   = np.array(self.path_points_lat_y)
-            self.path_points_yaw = np.array(self.path_points_heading)
+            # self.path_points_x   = np.array(self.path_points_lon_x)
+            # self.path_points_y   = np.array(self.path_points_lat_y)
+            # self.path_points_yaw = np.array(self.path_points_heading)
 
             # coordinates of rct_errorerence point (center of frontal axle) in global frame
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
             # print("X,Y,Yaw: ", curr_x, curr_y, curr_yaw)
 
-            target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
+            # target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
 
             # print("Target list", target_idx)
 
-            self.target_path_points_x   = self.path_points_x[target_idx]
-            self.target_path_points_y   = self.path_points_y[target_idx]
-            self.target_path_points_yaw = self.path_points_yaw[target_idx]
+            # self.target_path_points_x   = self.path_points_x[target_idx]
+            # self.target_path_points_y   = self.path_points_y[target_idx]
+            # self.target_path_points_yaw = self.path_points_yaw[target_idx]
+            self.target_path_points_x = self.camera_waypoints_x
+            self.target_path_points_y = self.camera_waypoints_y
+            self.target_path_points_yaw = self.camera_waypoints_heading
 
             # find the closest point
             dx = [curr_x - x for x in self.target_path_points_x]
@@ -111,6 +123,7 @@ class Stanley_Camera(Stanley):
 def stanley_camera_run():
     rospy.init_node('gnss_stanley_mode', anonymous=True)
     stanley = Stanley_Camera()
+    stanley.update_origin() # update current lon, lat of car
 
     try:
         stanley.start_stanley_camera()

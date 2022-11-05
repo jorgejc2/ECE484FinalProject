@@ -66,7 +66,7 @@ class ImageConverter:
         pub_image = np.copy(frame)
 
         test = lanenet_detector()
-        combined = test.combinedBinaryImage(pub_img)
+        combined = test.combinedBinaryImage(pub_image)
 
 
         output, x, y = test.perspective_transform(np.float32(combined))
@@ -76,8 +76,8 @@ class ImageConverter:
         """publish the perspective transform"""
         # self.image_pub.publish(output)
 
-        a = numpy.array([line_fit_dict['waypoint_x'] , line_fit_dict['waypoint_y'], line_fit_dict['waypoint_heading']])
-        waypoint.publish(a)
+        a = np.array([line_fit_dict['waypoint_x'] , line_fit_dict['waypoint_y'], line_fit_dict['waypoint_heading']])
+        self.waypoint.publish(a)
 
         # ----------------------------------------------------------------------
 

@@ -4,6 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import pickle
+import math
 # from combined_thresh import combined_thresh
 # from perspective_transform import perspective_transform
 
@@ -122,21 +123,22 @@ def line_fit(binary_warped):
 		print("Unable to detect lanes")
 		return None
 
+	x_center = []
+	for i in range(len(left_centroids)):
+		temp = (left_centroids[i] + right_centroids[i])/2
+		x_center.append(temp)
+        # print(left_cen)
+        # print(right_cen)
+        # print(y_centers)
 
-    for i in range(len(left_cen)):
-            temp = (left_cen[i] + right_cen[i])/2
-            x_centers.append(temp)
-        print(left_cen)
-        print(right_cen)
-        print(y_centers)
+	waypoint_y = y_center[0]
+	waypoint_x = x_center[0]
 
-    waypoint_y = y_center[0]
-    waypoint_x = x_center[0]
+	y_dist = binary_warped.shape[0] - y_center[0]
+	x_dist = waypoint_x - (binary_warped.shape[1]/2)
 
-    y_dist = binary_warped.shape[0] - y_center[0]
-    x_dist = (binary_warped.shape[1]/2) - waypoint_x
-
-    waypoint_heading = math.arctan2(y_dist/x_dist)
+	# waypoint_heading = math.arctan2(y_dist,x_dist)
+	waypoint_heading = np.radians(math.arctan2(x_dist,y_dist))
 
 
 	# Return a dict of relevant variables
@@ -146,14 +148,14 @@ def line_fit(binary_warped):
 	ret['nonzerox'] = nonzerox
 	ret['nonzeroy'] = nonzeroy
 	ret['out_img'] = out_img
-	ret['left_lane_inds'] = left_lane_inds
-	ret['right_lane_inds'] = right_lane_inds
-	ret['left_centroids'] = left_centroids
-	ret['right_centroids'] = right_centroids
-	ret['y_centers'] = y_centers
-    ret['waypoint_x'] = waypoint_x
-    ret['waypoint_y'] = waypoint_y
-    ret['waypoint_heading'] = heading
+	# ret['left_lane_inds'] = left_lane_inds
+	# ret['right_lane_inds'] = right_lane_inds
+	# ret['left_centroids'] = left_centroids
+	# ret['right_centroids'] = right_centroids
+	# ret['y_centers'] = y_centers
+	ret['waypoint_x'] = waypoint_x
+	ret['waypoint_y'] = waypoint_y
+	ret['waypoint_heading'] = waypoint_heading
 
 	return ret
 
