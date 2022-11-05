@@ -137,8 +137,13 @@ def line_fit(binary_warped):
 	y_dist = binary_warped.shape[0] - y_center[0]
 	x_dist = waypoint_x - (binary_warped.shape[1]/2)
 
+	meter_conversion = 0.01 # meters per pixel
+
+	actual_x_dist = x_dist * meter_conversion
+	actual_y_dist = y_dist * meter_conversion
+
 	# waypoint_heading = math.arctan2(y_dist,x_dist)
-	waypoint_heading = np.radians(math.arctan2(x_dist,y_dist))
+	waypoint_heading = np.radians(math.arctan2(actual_x_dist,actual_y_dist))
 
 
 	# Return a dict of relevant variables
@@ -153,8 +158,8 @@ def line_fit(binary_warped):
 	# ret['left_centroids'] = left_centroids
 	# ret['right_centroids'] = right_centroids
 	# ret['y_centers'] = y_centers
-	ret['waypoint_x'] = waypoint_x
-	ret['waypoint_y'] = waypoint_y
+	ret['waypoint_x'] = actual_x_dist
+	ret['waypoint_y'] = actual_y_dist
 	ret['waypoint_heading'] = waypoint_heading
 
 	return ret
