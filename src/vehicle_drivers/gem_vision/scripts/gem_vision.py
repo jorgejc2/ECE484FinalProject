@@ -73,6 +73,9 @@ class ImageConverter:
 
         line_fit_dict = line_fit(output)
 
+        """publish the perspective transform"""
+        # self.image_pub.publish(output)
+
         a = numpy.array([line_fit_dict['waypoint_x'] , line_fit_dict['waypoint_y'], line_fit_dict['waypoint_heading']])
         waypoint.publish(a)
 
@@ -80,7 +83,8 @@ class ImageConverter:
 
         try:
             # Convert OpenCV image to ROS image and publish
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
+            # self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, "bgr8"))
         except CvBridgeError as e:
             rospy.logerr("CvBridge Error: {0}".format(e))
 

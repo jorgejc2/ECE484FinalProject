@@ -5,6 +5,7 @@ class Stanley_Camera(Stanley):
     def __init__(self):
         super().__init__()
         self.camera_waypoints = []
+        self.curr_idx = 0
 
     def update_origin(self):
         """
@@ -16,7 +17,7 @@ class Stanley_Camera(Stanley):
         self.olon = self.lon
         return
 
-    def start_stanley(self):
+    def start_stanley_camera(self):
         while not rospy.is_shutdown():
 
             self.path_points_x   = np.array(self.path_points_lon_x)
@@ -106,3 +107,15 @@ class Stanley_Camera(Stanley):
             self.stanley_pub.publish(self.ackermann_msg)
 
             self.rate.sleep()
+
+def stanley_camera_run():
+    rospy.init_node('gnss_stanley_mode', anonymous=True)
+    stanley = Stanley_Camera()
+
+    try:
+        stanley.start_stanley_camera()
+    except rospy.ROSInterruptException:
+        pass
+
+if __name__ == '__main__':
+    stanley_camera_run()
