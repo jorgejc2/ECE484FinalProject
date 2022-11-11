@@ -7,6 +7,7 @@
   <maintainer email="hangcui1201@gmail.com"> Hang Cui </maintainer>
   <url type="repository">https://github.com/hangcui1201/POLARIS_GEM_e2_Real.git</url>
   <license>BSD</license>
+  <depend>message_generation</depend>
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>roscpp</build_depend>

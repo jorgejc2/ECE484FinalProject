@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   std_msgs
+  generate_messages
 )
 
 catkin_package(
@@ -16,6 +17,16 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+)
+
+add_message_files(
+  FILES
+  waypoint.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 )
 
 
