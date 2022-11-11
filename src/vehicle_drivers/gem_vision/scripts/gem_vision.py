@@ -32,7 +32,7 @@ from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
 from lane_detector import lanenet_detector
 from line_fit import line_fit
-from rospy_tutorials.msg import Floats
+from gem_vision.msg import waypoint
 
 
 class ImageConverter:
@@ -51,7 +51,7 @@ class ImageConverter:
         self.image_sub = rospy.Subscriber("/zed2/zed_node/left/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/front_camera/image_processed", Image, queue_size=1)
 
-        self.waypoint = rospy.Publisher('waypoint', numpy_msg(Floats) , queue_size=1)
+        self.wp = rospy.Publisher('waypoint', waypoint , queue_size=1)
 
     def image_callback(self, ros_image):
 
@@ -75,9 +75,12 @@ class ImageConverter:
 
         """publish the perspective transform"""
         # self.image_pub.publish(output)
+        point = waypoint()
+        point.x = line_fit_dict['waypoint_x'] 
+        point.y = line_fit_dict['waypoint_y']
+        point.heading = line_fit_dict['waypoint_heading']
 
-        a = np.array([line_fit_dict['waypoint_x'] , line_fit_dict['waypoint_y'], line_fit_dict['waypoint_heading']])
-        self.waypoint.publish(a)
+        self.wp.publish(point)
 
         # ----------------------------------------------------------------------
 
