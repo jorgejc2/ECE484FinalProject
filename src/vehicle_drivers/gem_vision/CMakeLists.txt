@@ -8,15 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   std_msgs
-  generate_messages
-)
-
-catkin_package(
-)
-
-include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
+  message_generation
 )
 
 add_message_files(
@@ -28,5 +20,15 @@ generate_messages(
   DEPENDENCIES
   std_msgs
 )
+
+catkin_package(
+)
+
+include_directories(
+# include
+  ${catkin_INCLUDE_DIRS}
+)
+
+
 
 

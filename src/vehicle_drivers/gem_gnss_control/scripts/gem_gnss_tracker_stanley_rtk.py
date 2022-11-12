@@ -32,7 +32,6 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from gem_vision.msg import waypoint
-from gem_LIDAR.scripts.lidarProcessing import LidarProcessing
 
 
 # GEM PACMod Headers
@@ -138,10 +137,10 @@ class Stanley(object):
         self.ackermann_msg.jerk                    = 0.0
         self.ackermann_msg.speed                   = 0.0 
         self.ackermann_msg.steering_angle          = 0.0
-        
-        
-        self.brake_pub = rospy.Publisher('/pacmod/as_rx/brake_cmd', PacmodCmd, queue_size=1)
 
+        self.waypoint_x = None
+        self.waypoint_y = None
+        self.waypoint_heading = None
 
         # read waypoints into the system           
         self.read_waypoints() 
@@ -158,6 +157,7 @@ class Stanley(object):
         self.heading = inspva_msg.azimuth   # heading in degrees
 
     def waypoint_callback(self, msg):
+        print(msg.x, msg.y, msg.heading)
         self.waypoint_x = msg.x
         self.waypoint_y = msg.y
         self.waypoint_heading = msg.heading
@@ -265,32 +265,36 @@ class Stanley(object):
     def start_stanley(self):
         
         while not rospy.is_shutdown():
-            
-            # lidar readings
-            lidar_reading = LidarProcessing.processLidar()
-            safe_breaking_distance = 20     # distance in metres
 
-
-            self.path_points_x   = np.array(self.path_points_lon_x)
-            self.path_points_y   = np.array(self.path_points_lat_y)
-            self.path_points_yaw = np.array(self.path_points_heading)
+            # self.path_points_x   = np.array(self.path_points_lon_x)
+            # self.path_points_y   = np.array(self.path_points_lat_y)
+            # self.path_points_yaw = np.array(self.path_points_heading)
 
             # coordinates of rct_errorerence point (center of frontal axle) in global frame
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
             # print("X,Y,Yaw: ", curr_x, curr_y, curr_yaw)
 
-            target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
+            # target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
 
             # print("Target list", target_idx)
 
-            self.target_path_points_x   = self.path_points_x[target_idx]
-            self.target_path_points_y   = self.path_points_y[target_idx]
-            self.target_path_points_yaw = self.path_points_yaw[target_idx]
+            # self.target_path_points_x   = self.path_points_x[target_idx]
+            # self.target_path_points_y   = self.path_points_y[target_idx]
+            # self.target_path_points_yaw = self.path_points_yaw[target_idx]
+            if self.waypoint_x is None:
+                continue
+
+
+            self.target_path_points_x = [self.waypoint_x]
+            self.target_path_points_y = [self.waypoint_y]
+            self.target_path_points_yaw = [self.waypoint_heading]
 
             # find the closest point
             dx = [curr_x - x for x in self.target_path_points_x]
             dy = [curr_y - y for y in self.target_path_points_y]
+            # dx = [curr_x - self.target_path_points_x]
+            # dy = [curr_y - self.target_path_points_y]
 
             # find the index of closest point
             target_point_idx = int(np.argmin(np.hypot(dx, dy)))
@@ -316,7 +320,7 @@ class Stanley(object):
 
             # theta_e = self.target_path_points_yaw[target_point_idx]-curr_yaw 
             theta_e_deg = round(np.degrees(theta_e), 1)
-            print("Crosstrack Error: " + str(round(ct_error,3)) + ", Heading Error: " + str(theta_e_deg))
+            # print("Crosstrack Error: " + str(round(ct_error,3)) + ", Heading Error: " + str(theta_e_deg))
 
             # --------------------------- Longitudinal control using PD controller ---------------------------
 
@@ -336,44 +340,26 @@ class Stanley(object):
 
             if throttle_percent < 0.3:
                 throttle_percent = 0.37
-                
-                
-            # need to check which ros topic is publishing to /pacmod/as_rx/enable
-            # check what is in the message for pacmod
-            
-            if (lidar_reading <= safe_breaking_distance):
-                self.ackermann_msg.acceleration = 0.0
+
+            # -------------------------------------- Stanley controller --------------------------------------
+
+            f_delta        = round(theta_e + np.arctan2(ct_error*0.4, filt_vel), 3)
+            f_delta        = round(np.clip(f_delta, -0.61, 0.61), 3)
+            f_delta_deg    = np.degrees(f_delta)
+            steering_angle = self.front2steer(f_delta_deg)
+
+            if (filt_vel < 0.2):
+                self.ackermann_msg.acceleration   = throttle_percent
                 self.ackermann_msg.steering_angle = 0
-
-                
-                brake = PacmodCmd()
-                brake.enable = True
-                brake.clear = False
-                brake.ignore  = False
-                brake.f64_cmd = 0.5             # value of brake?
-                
-                
-                self.brake_pub.publish(brake)    
-            
+                print(self.ackermann_msg.steering_angle)
             else:
-                # -------------------------------------- Stanley controller --------------------------------------
+                self.ackermann_msg.acceleration   = throttle_percent
+                self.ackermann_msg.steering_angle = round(steering_angle,1)
+                print(self.ackermann_msg.steering_angle)
 
-                f_delta        = round(theta_e + np.arctan2(ct_error*0.4, filt_vel), 3)
-                f_delta        = round(np.clip(f_delta, -0.61, 0.61), 3)
-                f_delta_deg    = np.degrees(f_delta)
-                steering_angle = self.front2steer(f_delta_deg)
+            # ------------------------------------------------------------------------------------------------ 
 
-                if (filt_vel < 0.2):
-                    self.ackermann_msg.acceleration   = throttle_percent
-                    self.ackermann_msg.steering_angle = 0
-                    print(self.ackermann_msg.steering_angle)
-                else:
-                    self.ackermann_msg.acceleration   = throttle_percent
-                    self.ackermann_msg.steering_angle = round(steering_angle,1)
-                    print(self.ackermann_msg.steering_angle)
-
-                # ------------------------------------------------------------------------------------------------ 
-                
+            print(self.ackermann_msg.acceleration, self.ackermann_msg.steering_angle)
             self.stanley_pub.publish(self.ackermann_msg)
 
             self.rate.sleep()

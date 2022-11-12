@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/ece484/Documents/ECE484/mp-release-22fa/src
+CMAKE_SOURCE_DIR = /home/gem/demo_ws/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/ece484/Documents/ECE484/mp-release-22fa/build
+CMAKE_BINARY_DIR = /home/gem/demo_ws/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -94,7 +94,7 @@ install/fast: preinstall/fast
 
 # Special rule for the target list_install_components
 list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\" \"main\""
 .PHONY : list_install_components
 
 # Special rule for the target list_install_components
@@ -137,14 +137,14 @@ test/fast: test
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/ece484/Documents/ECE484/mp-release-22fa/build/CMakeFiles /home/ece484/Documents/ECE484/mp-release-22fa/build/gtest/CMakeFiles/progress.marks
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/ece484/Documents/ECE484/mp-release-22fa/build/CMakeFiles 0
+	cd /home/gem/demo_ws/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/gem/demo_ws/build/CMakeFiles /home/gem/demo_ws/build/gtest/CMakeFiles/progress.marks
+	cd /home/gem/demo_ws/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/gem/demo_ws/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/clean
+	cd /home/gem/demo_ws/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/clean
 .PHONY : clean
 
 # The main clean target
@@ -154,17 +154,17 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/preinstall
+	cd /home/gem/demo_ws/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/preinstall
+	cd /home/gem/demo_ws/build && $(MAKE) -f CMakeFiles/Makefile2 gtest/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/gem/demo_ws/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Help Target
@@ -191,6 +191,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/ece484/Documents/ECE484/mp-release-22fa/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/gem/demo_ws/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

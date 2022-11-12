@@ -1,8 +1,8 @@
-# Install script for directory: /home/ece484/Documents/ECE484/mp-release-22fa/src/mp2
+# Install script for directory: /home/gem/demo_ws/src/mp2
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/ece484/Documents/ECE484/mp-release-22fa/install")
+  set(CMAKE_INSTALL_PREFIX "/home/gem/demo_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -38,17 +38,17 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/ece484/Documents/ECE484/mp-release-22fa/build/mp2/catkin_generated/installspace/mp2.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "/home/gem/demo_ws/build/mp2/catkin_generated/installspace/mp2.pc")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/mp2/cmake" TYPE FILE FILES
-    "/home/ece484/Documents/ECE484/mp-release-22fa/build/mp2/catkin_generated/installspace/mp2Config.cmake"
-    "/home/ece484/Documents/ECE484/mp-release-22fa/build/mp2/catkin_generated/installspace/mp2Config-version.cmake"
+    "/home/gem/demo_ws/build/mp2/catkin_generated/installspace/mp2Config.cmake"
+    "/home/gem/demo_ws/build/mp2/catkin_generated/installspace/mp2Config-version.cmake"
     )
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/mp2" TYPE FILE FILES "/home/ece484/Documents/ECE484/mp-release-22fa/src/mp2/package.xml")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/mp2" TYPE FILE FILES "/home/gem/demo_ws/src/mp2/package.xml")
 endif()
 

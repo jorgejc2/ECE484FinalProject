@@ -1,4 +1,4 @@
-prefix=/home/ece484/Documents/ECE484/mp-release-22fa/install
+prefix=/home/gem/demo_ws/install
 
 Name: mp0
 Description: Description of mp0

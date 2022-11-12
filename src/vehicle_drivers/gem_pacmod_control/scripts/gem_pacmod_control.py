@@ -52,7 +52,7 @@ class PACMod(object):
         # -------------------- PACMod setup --------------------
 
         self.gem_enable    = False
-        self.pacmod_enable = False
+        self.pacmod_enable = True
 
         # GEM vehicle enable
         self.enable_sub = rospy.Subscriber('/pacmod/as_rx/enable', Bool, self.pacmod_enable_callback)
@@ -67,14 +67,14 @@ class PACMod(object):
         # GEM vehilce brake control
         self.brake_pub = rospy.Publisher('/pacmod/as_rx/brake_cmd', PacmodCmd, queue_size=1)
         self.brake_cmd = PacmodCmd()
-        self.brake_cmd.enable = False
+        self.brake_cmd.enable = True
         self.brake_cmd.clear  = True
         self.brake_cmd.ignore = True
 
         # GEM vechile forward motion control
         self.accel_pub = rospy.Publisher('/pacmod/as_rx/accel_cmd', PacmodCmd, queue_size=1)
         self.accel_cmd = PacmodCmd()
-        self.accel_cmd.enable = False
+        self.accel_cmd.enable = True
         self.accel_cmd.clear  = True
         self.accel_cmd.ignore = True
 
@@ -105,6 +105,7 @@ class PACMod(object):
     def start_pacmod(self):
         
         while not rospy.is_shutdown():
+            print(self.pacmod_enable, self.gem_enable)
 
             if(self.pacmod_enable == True):
 
@@ -143,14 +144,13 @@ class PACMod(object):
                     self.gem_enable = True
 
                 else: 
-
                     if (self.ackermann_msg_gnss.steering_angle <= 45 and self.ackermann_msg_gnss.steering_angle >= -45):
                         self.turn_cmd.ui16_cmd = 1
                     elif(self.ackermann_msg_gnss.steering_angle > 45):
                         self.turn_cmd.ui16_cmd = 2 # turn left
                     else:
                         self.turn_cmd.ui16_cmd = 0 # turn right
-
+                    print(self.accel_cmd.f64_cmd)
                     self.accel_cmd.f64_cmd = self.ackermann_msg_gnss.acceleration
                     self.steer_cmd.angular_position = np.radians(self.ackermann_msg_gnss.steering_angle)
   

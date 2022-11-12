@@ -106,8 +106,8 @@ def line_fit(binary_warped):
 	rightx = nonzerox[right_lane_inds]
 	righty = nonzeroy[right_lane_inds]
 
-	cv2.imshow('test', np.float32(out_img))
-	cv2.waitKey(0)
+	# cv2.imshow('test', np.float32(out_img))
+	# cv2.waitKey(0)
 
 	# Fit a second order polynomial to each using np.polyfit()
 	# If there isn't a good fit, meaning any of leftx, lefty, rightx, and righty are empty,
@@ -123,18 +123,18 @@ def line_fit(binary_warped):
 		print("Unable to detect lanes")
 		return None
 
-	x_center = []
+	x_centers = []
 	for i in range(len(left_centroids)):
 		temp = (left_centroids[i] + right_centroids[i])/2
-		x_center.append(temp)
+		x_centers.append(temp)
         # print(left_cen)
         # print(right_cen)
         # print(y_centers)
 
-	waypoint_y = y_center[0]
-	waypoint_x = x_center[0]
+	waypoint_y = y_centers[0]
+	waypoint_x = x_centers[0]
 
-	y_dist = binary_warped.shape[0] - y_center[0]
+	y_dist = binary_warped.shape[0] - y_centers[0]
 	x_dist = waypoint_x - (binary_warped.shape[1]/2)
 
 	meter_conversion = 0.01 # meters per pixel
@@ -143,7 +143,7 @@ def line_fit(binary_warped):
 	actual_y_dist = y_dist * meter_conversion
 
 	# waypoint_heading = math.arctan2(y_dist,x_dist)
-	waypoint_heading = np.radians(math.arctan2(actual_x_dist,actual_y_dist))
+	waypoint_heading = np.radians(np.arctan2(actual_x_dist,actual_y_dist))
 
 
 	# Return a dict of relevant variables
@@ -158,6 +158,9 @@ def line_fit(binary_warped):
 	# ret['left_centroids'] = left_centroids
 	# ret['right_centroids'] = right_centroids
 	# ret['y_centers'] = y_centers
+	# print(actual_x_dist)
+	# print(actual_y_dist)
+	# print(waypoint_heading)
 	ret['waypoint_x'] = actual_x_dist
 	ret['waypoint_y'] = actual_y_dist
 	ret['waypoint_heading'] = waypoint_heading

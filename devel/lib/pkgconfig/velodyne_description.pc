@@ -1,4 +1,4 @@
-prefix=/home/ece484/Documents/ECE484/ece484finalhwproject/devel
+prefix=/home/gem/demo_ws/devel
 
 Name: velodyne_description
 Description: Description of velodyne_description

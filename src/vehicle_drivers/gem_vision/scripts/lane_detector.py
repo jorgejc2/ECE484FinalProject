@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import rospy
 
-from Line import Line
+# from Line import Line
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
 from cv_bridge import CvBridge, CvBridgeError
@@ -20,14 +20,19 @@ class lanenet_detector():
         # NOTE
         # Uncomment this line for lane detection of GEM car in Gazebo
         # self.sub_image = rospy.Subscriber('/gem/front_single_camera/front_single_camera/image_raw', Image, self.img_callback, queue_size=1)
-        # Uncomment this line for lane detection of videos in rosbag   
         self.pub_image = rospy.Publisher("lane_detection/annotate", Image, queue_size=1)
         self.pub_bird = rospy.Publisher("lane_detection/birdseye", Image, queue_size=1)
-        self.left_line = Line(n=5)
-        self.right_line = Line(n=5)
-        self.detected = False
-        self.hist = True
+        # self.left_line = Line(n=5)
+        # self.right_line = LineUnable to detect lanes
+    #     raw_img = cv_image.copy()
+    #     mask_image, bird_image = self.detection(raw_img)
 
+    #     if mask_image is not None and bird_image is not None:
+    #         out_img_msg = self.bridge.cv2_to_imgmsg(mask_image, 'bgr8')
+    #         out_bird_msg = self.bridge.cv2_to_imgmsg(bird_image, 'bgr8')
+
+    #         self. pub_image.publish(out_img_msg)
+    #         self.pub_bird.publish(out_bird_msg)
 
     def gradient_thresh(self, img, thresh_min=25, thresh_max=100):
         """
@@ -60,7 +65,7 @@ class lanenet_detector():
         # convert pixels to uint8 and apply threshold
         thresh, binary_output = cv2.threshold(grad, thresh_min, thresh_max, cv2.THRESH_BINARY)
         binary_output[(binary_output > 0)] = 1
-        ####
+        # binary_output[(binary_output > 0)] = ModuleNotFoundError: No module named 'Line'
 
         return binary_output
 
@@ -100,11 +105,16 @@ class lanenet_detector():
         ## Here you can use as many methods as you want.
 
         ## TODO
+        # print("image", img.shape)
+
         SobelOutput = self.gradient_thresh(img, 15, 255)
         ColorOutput = self.color_thresh(img, (20, 90))
         ####
 
         binaryImage = np.zeros_like(SobelOutput)
+        # print("Sobel", SobelOutput.shape) 
+        # print("color", ColorOutput.shape)
+        # print("binary", binaryImage.shape)
         binaryImage[(ColorOutput==1)|(SobelOutput==1)] = 255
 
       
@@ -124,8 +134,8 @@ class lanenet_detector():
 
         ## TODO
         # # GEM simulation:
-        source = np.float32([[0,420],[220,290],[410,290],[640,420]])
-        destination = np.float32([[0,480],[0,0],[640,0],[640,480]])
+        source = np.float32([[300,680],[450,480],[830,480],[980,680]])
+        destination = np.float32([[0,720],[0,0],[1280,0],[1280,720]])
 
         # ROSBag Simulation
         # source = np.float32([[250,370],[420,250],[800,250],[950,370]])
