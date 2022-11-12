@@ -32,6 +32,7 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from gem_vision.msg import waypoint
+from gem_LIDAR.scripts.lidarProcessing import LidarProcessing
 
 
 # GEM PACMod Headers
@@ -137,6 +138,10 @@ class Stanley(object):
         self.ackermann_msg.jerk                    = 0.0
         self.ackermann_msg.speed                   = 0.0 
         self.ackermann_msg.steering_angle          = 0.0
+        
+        
+        self.brake_pub = rospy.Publisher('/pacmod/as_rx/brake_cmd', PacmodCmd, queue_size=1)
+
 
         # read waypoints into the system           
         self.read_waypoints() 
@@ -260,6 +265,11 @@ class Stanley(object):
     def start_stanley(self):
         
         while not rospy.is_shutdown():
+            
+            # lidar readings
+            lidar_reading = LidarProcessing.processLidar()
+            safe_breaking_distance = 20     # distance in metres
+
 
             self.path_points_x   = np.array(self.path_points_lon_x)
             self.path_points_y   = np.array(self.path_points_lat_y)
@@ -326,25 +336,44 @@ class Stanley(object):
 
             if throttle_percent < 0.3:
                 throttle_percent = 0.37
-
-            # -------------------------------------- Stanley controller --------------------------------------
-
-            f_delta        = round(theta_e + np.arctan2(ct_error*0.4, filt_vel), 3)
-            f_delta        = round(np.clip(f_delta, -0.61, 0.61), 3)
-            f_delta_deg    = np.degrees(f_delta)
-            steering_angle = self.front2steer(f_delta_deg)
-
-            if (filt_vel < 0.2):
-                self.ackermann_msg.acceleration   = throttle_percent
+                
+                
+            # need to check which ros topic is publishing to /pacmod/as_rx/enable
+            # check what is in the message for pacmod
+            
+            if (lidar_reading <= safe_breaking_distance):
+                self.ackermann_msg.acceleration = 0.0
                 self.ackermann_msg.steering_angle = 0
-                print(self.ackermann_msg.steering_angle)
+
+                
+                brake = PacmodCmd()
+                brake.enable = True
+                brake.clear = False
+                brake.ignore  = False
+                brake.f64_cmd = 0.5             # value of brake?
+                
+                
+                self.brake_pub.publish(brake)    
+            
             else:
-                self.ackermann_msg.acceleration   = throttle_percent
-                self.ackermann_msg.steering_angle = round(steering_angle,1)
-                print(self.ackermann_msg.steering_angle)
+                # -------------------------------------- Stanley controller --------------------------------------
 
-            # ------------------------------------------------------------------------------------------------ 
+                f_delta        = round(theta_e + np.arctan2(ct_error*0.4, filt_vel), 3)
+                f_delta        = round(np.clip(f_delta, -0.61, 0.61), 3)
+                f_delta_deg    = np.degrees(f_delta)
+                steering_angle = self.front2steer(f_delta_deg)
 
+                if (filt_vel < 0.2):
+                    self.ackermann_msg.acceleration   = throttle_percent
+                    self.ackermann_msg.steering_angle = 0
+                    print(self.ackermann_msg.steering_angle)
+                else:
+                    self.ackermann_msg.acceleration   = throttle_percent
+                    self.ackermann_msg.steering_angle = round(steering_angle,1)
+                    print(self.ackermann_msg.steering_angle)
+
+                # ------------------------------------------------------------------------------------------------ 
+                
             self.stanley_pub.publish(self.ackermann_msg)
 
             self.rate.sleep()

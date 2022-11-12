@@ -126,35 +126,35 @@ class LidarProcessing:
 
         pixel_vals = scale_to_255(pixel_vals, min_val=self.height_range[0], max_val=self.height_range[1])
         
-        # Getting sensor reading for left       
-        filter_left = np.logical_and((x_points>-0.1), (x_points<0.1))
-        filter_left = np.logical_and(filter_left, y_points > 0)
-        filter_left = np.logical_and(filter_left, pixel_vals > 128)
-        indices = np.argwhere(filter_left).flatten()
+        # # Getting sensor reading for left       
+        # filter_left = np.logical_and((x_points>-0.1), (x_points<0.1))
+        # filter_left = np.logical_and(filter_left, y_points > 0)
+        # filter_left = np.logical_and(filter_left, pixel_vals > 128)
+        # indices = np.argwhere(filter_left).flatten()
 
-        self.x_left = np.mean(x_points[indices])
-        self.y_left = np.mean(y_points[indices])
+        # self.x_left = np.mean(x_points[indices])
+        # self.y_left = np.mean(y_points[indices])
         
-        # Getting sensor reading for right       
-        filter_right = np.logical_and((x_points>-0.1), (x_points<0.1))
-        filter_right = np.logical_and(filter_right, y_points < 0)
-        filter_right = np.logical_and(filter_right, pixel_vals > 128)
-        indices = np.argwhere(filter_right).flatten()
+        # # Getting sensor reading for right       
+        # filter_right = np.logical_and((x_points>-0.1), (x_points<0.1))
+        # filter_right = np.logical_and(filter_right, y_points < 0)
+        # filter_right = np.logical_and(filter_right, pixel_vals > 128)
+        # indices = np.argwhere(filter_right).flatten()
 
-        self.x_right = np.mean(x_points[indices])
-        self.y_right = np.mean(y_points[indices])
+        # self.x_right = np.mean(x_points[indices])
+        # self.y_right = np.mean(y_points[indices])
         
-        # Getting sensor reading for rear       
-        filter_rear = np.logical_and((y_points>-0.1), (y_points<0.1))
-        filter_rear = np.logical_and(filter_rear, x_points < 0)
-        filter_rear = np.logical_and(filter_rear, pixel_vals > 128)
-        indices = np.argwhere(filter_rear).flatten()
+        # # Getting sensor reading for rear       
+        # filter_rear = np.logical_and((y_points>-0.1), (y_points<0.1))
+        # filter_rear = np.logical_and(filter_rear, x_points < 0)
+        # filter_rear = np.logical_and(filter_rear, pixel_vals > 128)
+        # indices = np.argwhere(filter_rear).flatten()
 
-        self.x_rear = np.mean(x_points[indices])
-        self.y_rear = np.mean(y_points[indices])
+        # self.x_rear = np.mean(x_points[indices])
+        # self.y_rear = np.mean(y_points[indices])
 
         # Getting sensor reading for front       
-        filter_front = np.logical_and((y_points>-0.1), (y_points<0.1))
+        filter_front = np.logical_and((y_points>-1), (y_points<1))
         filter_front = np.logical_and(filter_front, x_points > 0)
         filter_front = np.logical_and(filter_front, pixel_vals > 128)
         indices = np.argwhere(filter_front).flatten()
@@ -165,44 +165,44 @@ class LidarProcessing:
         ## TODO: Add 4 additional sensor directions #####
         # Handle sensor at 4 diagnal direction
         # Getting sensor reading for front left
-        filter_front_left = np.logical_and(y_points - x_points < 0.1, y_points - x_points > -0.1)
-        filter_front_left = np.logical_and(filter_front_left, x_points > 0)
-        filter_front_left = np.logical_and(filter_front_left, y_points > 0)
-        filter_front_left = np.logical_and(filter_front_left, pixel_vals > 128)
-        indices = np.argwhere(filter_front_left).flatten()
+        # filter_front_left = np.logical_and(y_points - x_points < 0.1, y_points - x_points > -0.1)
+        # filter_front_left = np.logical_and(filter_front_left, x_points > 0)
+        # filter_front_left = np.logical_and(filter_front_left, y_points > 0)
+        # filter_front_left = np.logical_and(filter_front_left, pixel_vals > 128)
+        # indices = np.argwhere(filter_front_left).flatten()
 
-        self.x_front_left = np.mean(x_points[indices])
-        self.y_front_left = np.mean(y_points[indices])
+        # self.x_front_left = np.mean(x_points[indices])
+        # self.y_front_left = np.mean(y_points[indices])
 
-        # Getting sensor reading for rear left
-        filter_rear_left = np.logical_and(y_points + x_points < 0.1, y_points + x_points > -0.1)
-        filter_rear_left = np.logical_and(filter_rear_left, x_points < 0)
-        filter_rear_left = np.logical_and(filter_rear_left, y_points > 0)
-        filter_rear_left = np.logical_and(filter_rear_left, pixel_vals > 128)
-        indices = np.argwhere(filter_rear_left).flatten()
+        # # Getting sensor reading for rear left
+        # filter_rear_left = np.logical_and(y_points + x_points < 0.1, y_points + x_points > -0.1)
+        # filter_rear_left = np.logical_and(filter_rear_left, x_points < 0)
+        # filter_rear_left = np.logical_and(filter_rear_left, y_points > 0)
+        # filter_rear_left = np.logical_and(filter_rear_left, pixel_vals > 128)
+        # indices = np.argwhere(filter_rear_left).flatten()
 
-        self.x_rear_left = np.mean(x_points[indices])
-        self.y_rear_left = np.mean(y_points[indices])
+        # self.x_rear_left = np.mean(x_points[indices])
+        # self.y_rear_left = np.mean(y_points[indices])
 
-        # Getting sensor reading for front right
-        filter_front_right = np.logical_and(y_points + x_points < 0.1, y_points + x_points > -0.1)
-        filter_front_right = np.logical_and(filter_front_right, x_points > 0)
-        filter_front_right = np.logical_and(filter_front_right, y_points < 0)
-        filter_front_right = np.logical_and(filter_front_right, pixel_vals > 128)
-        indices = np.argwhere(filter_front_right).flatten()
+        # # Getting sensor reading for front right
+        # filter_front_right = np.logical_and(y_points + x_points < 0.1, y_points + x_points > -0.1)
+        # filter_front_right = np.logical_and(filter_front_right, x_points > 0)
+        # filter_front_right = np.logical_and(filter_front_right, y_points < 0)
+        # filter_front_right = np.logical_and(filter_front_right, pixel_vals > 128)
+        # indices = np.argwhere(filter_front_right).flatten()
 
-        self.x_front_right = np.mean(x_points[indices])
-        self.y_front_right = np.mean(y_points[indices])
+        # self.x_front_right = np.mean(x_points[indices])
+        # self.y_front_right = np.mean(y_points[indices])
 
-        # Getting sensor reading for rear right
-        filter_rear_right = np.logical_and(y_points - x_points < 0.1, y_points - x_points > -0.1)
-        filter_rear_right = np.logical_and(filter_rear_right, x_points < 0)
-        filter_rear_right = np.logical_and(filter_rear_right, y_points < 0)
-        filter_rear_right = np.logical_and(filter_rear_right, pixel_vals > 128)
-        indices = np.argwhere(filter_rear_right).flatten()
+        # # Getting sensor reading for rear right
+        # filter_rear_right = np.logical_and(y_points - x_points < 0.1, y_points - x_points > -0.1)
+        # filter_rear_right = np.logical_and(filter_rear_right, x_points < 0)
+        # filter_rear_right = np.logical_and(filter_rear_right, y_points < 0)
+        # filter_rear_right = np.logical_and(filter_rear_right, pixel_vals > 128)
+        # indices = np.argwhere(filter_rear_right).flatten()
 
-        self.x_rear_right = np.mean(x_points[indices])
-        self.y_rear_right = np.mean(y_points[indices])
+        # self.x_rear_right = np.mean(x_points[indices])
+        # self.y_rear_right = np.mean(y_points[indices])
         ###############
 
         # convert points to image coords with resolution
@@ -312,7 +312,8 @@ class LidarProcessing:
         if np.isnan(rear_right):
             rear_right = self.sensor_limit
 
-        return [front*100, right*100, rear*100, left*100]
+        # return [front*100, right*100, rear*100, left*100]
+        return [front*100]
         # return [front*100, right*100, rear*100, left*100, front_left*100, front_right*100, rear_left*100, rear_right*100]
 
 
