@@ -4,5 +4,5 @@ PROJECT_PKG_CONFIG_INCLUDE_DIRS = "".split(';') if "" != "" else []
 PROJECT_CATKIN_DEPENDS = "".replace(';', ' ')
 PKG_CONFIG_LIBRARIES_WITH_PREFIX = "".split(';') if "" != "" else []
 PROJECT_NAME = "mp2"
-PROJECT_SPACE_DIR = "/home/ece484/Documents/ECE484/mp-release-22fa/devel"
+PROJECT_SPACE_DIR = "/home/gem/demo_ws/devel"
 PROJECT_VERSION = "0.0.0"

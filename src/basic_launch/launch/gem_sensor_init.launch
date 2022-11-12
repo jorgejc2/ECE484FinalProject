@@ -17,6 +17,7 @@
     <arg name="use_lidar1" value="true" />
     <arg name="use_gps" value="true" />
     <arg name="use_front_radar" value="true" />
+    <arg name="use_camera" default="true" />
     <!--    
     <arg name="use_dbw" value="true" /> 
     -->

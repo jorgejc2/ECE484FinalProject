@@ -424,14 +424,17 @@
 		<param name="binning_y" value="1"/>
 		<param name="decimation_x" value="1"/>
 		<param name="decimation_y" value="1"/>
+		
 		<!--
 		<param name="x_offset" value="8"/>
 		<param name="y_offset" value="9"/>
 		<param name="width" value="1920"/>
 		<param name="height" value="1440"/>
 		-->
+		
 		<param name="x_offset" value="8"/>
 		<param name="y_offset" value="9"/>
+		
 		<param name="width" value="1920"/>
 		<param name="height" value="1080"/>
 		

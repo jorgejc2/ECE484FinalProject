@@ -1,8 +1,8 @@
-prefix=/home/ece484/Documents/ECE484/mp-release-22fa/devel
+prefix=/home/gem/demo_ws/devel
 
 Name: mp1
 Description: Description of mp1
-Version: 0.0.0
+Version: 1.0.0
 Cflags: 
 Libs: -L${prefix}/lib 
 Requires: 

@@ -1,1 +1,1 @@
-/usr/bin/c++ -fPIC   -shared -Wl,-soname,libgmock_main.so -o ../lib/libgmock_main.so CMakeFiles/gmock_main.dir/src/gmock_main.cc.o  -Wl,-rpath,/home/ece484/Documents/ECE484/mp-release-22fa/build/gtest/lib ../lib/libgmock.so ../lib/libgtest.so -lpthread 
+/usr/bin/c++ -fPIC   -shared -Wl,-soname,libgmock_main.so -o ../lib/libgmock_main.so CMakeFiles/gmock_main.dir/src/gmock_main.cc.o  -Wl,-rpath,/home/gem/demo_ws/build/gtest/lib ../lib/libgmock.so ../lib/libgtest.so -lpthread 

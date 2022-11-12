@@ -2,7 +2,7 @@
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "/home/ece484/Documents/ECE484/mp-release-22fa/install")
+  set(CMAKE_INSTALL_PREFIX "/home/gem/demo_ws/install")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/ece484/Documents/ECE484/mp-release-22fa/build/gtest/googletest/cmake_install.cmake")
+  include("/home/gem/demo_ws/build/gtest/googletest/cmake_install.cmake")
 
 endif()
 
