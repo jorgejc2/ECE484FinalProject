@@ -7,5 +7,10 @@
 # new environment variables
 
 # modified environment variables
+export CMAKE_PREFIX_PATH="/home/ece484/Documents/ECE484/ece484finalhwproject/devel:$CMAKE_PREFIX_PATH"
+export LD_LIBRARY_PATH="/home/ece484/Documents/ECE484/ece484finalhwproject/devel/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="/home/ece484/Documents/ECE484/ece484finalhwproject/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
 export PWD='/home/ece484/Documents/ECE484/ece484finalhwproject/build'
-export ROS_PACKAGE_PATH='/home/ece484/Documents/ECE484/mp-release-22fa/src:/home/ece484/Documents/ECE484/ece484finalhwproject/src:/opt/ros/noetic/share'
+export PYTHONPATH="/home/ece484/Documents/ECE484/ece484finalhwproject/devel/lib/python3/dist-packages:$PYTHONPATH"
+export ROSLISP_PACKAGE_DIRECTORIES='/home/ece484/Documents/ECE484/ece484finalhwproject/devel/share/common-lisp'
+export ROS_PACKAGE_PATH="/home/ece484/Documents/ECE484/mp-release-22fa/src:/home/ece484/Documents/ECE484/ece484finalhwproject/src:$ROS_PACKAGE_PATH"

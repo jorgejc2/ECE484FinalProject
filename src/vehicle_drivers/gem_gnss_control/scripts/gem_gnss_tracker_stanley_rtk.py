@@ -261,22 +261,25 @@ class Stanley(object):
         
         while not rospy.is_shutdown():
 
-            self.path_points_x   = np.array(self.path_points_lon_x)
-            self.path_points_y   = np.array(self.path_points_lat_y)
-            self.path_points_yaw = np.array(self.path_points_heading)
+            # self.path_points_x   = np.array(self.path_points_lon_x)
+            # self.path_points_y   = np.array(self.path_points_lat_y)
+            # self.path_points_yaw = np.array(self.path_points_heading)
 
             # coordinates of rct_errorerence point (center of frontal axle) in global frame
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
             # print("X,Y,Yaw: ", curr_x, curr_y, curr_yaw)
 
-            target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
+            # target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
 
             # print("Target list", target_idx)
 
-            self.target_path_points_x   = self.path_points_x[target_idx]
-            self.target_path_points_y   = self.path_points_y[target_idx]
-            self.target_path_points_yaw = self.path_points_yaw[target_idx]
+            # self.target_path_points_x   = self.path_points_x[target_idx]
+            # self.target_path_points_y   = self.path_points_y[target_idx]
+            # self.target_path_points_yaw = self.path_points_yaw[target_idx]
+            self.target_path_points_x = self.waypoint_x
+            self.target_path_points_y = self.waypoint_y
+            self.target_path_points_yaw = self.waypoint_heading
 
             # find the closest point
             dx = [curr_x - x for x in self.target_path_points_x]

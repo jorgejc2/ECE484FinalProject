@@ -29,22 +29,9 @@ class Stanley_Camera(Stanley):
     def start_stanley_camera(self):
         while not rospy.is_shutdown():
 
-            # self.path_points_x   = np.array(self.path_points_lon_x)
-            # self.path_points_y   = np.array(self.path_points_lat_y)
-            # self.path_points_yaw = np.array(self.path_points_heading)
-
             # coordinates of rct_errorerence point (center of frontal axle) in global frame
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
-            # print("X,Y,Yaw: ", curr_x, curr_y, curr_yaw)
-
-            # target_idx = self.find_close_yaw(self.path_points_yaw, curr_yaw)
-
-            # print("Target list", target_idx)
-
-            # self.target_path_points_x   = self.path_points_x[target_idx]
-            # self.target_path_points_y   = self.path_points_y[target_idx]
-            # self.target_path_points_yaw = self.path_points_yaw[target_idx]
             self.target_path_points_x = self.camera_waypoints_x
             self.target_path_points_y = self.camera_waypoints_y
             self.target_path_points_yaw = self.camera_waypoints_heading
