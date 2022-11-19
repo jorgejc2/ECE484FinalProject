@@ -69,6 +69,7 @@ class ImageConverter:
 
         test = lanenet_detector()
         combined = test.combinedBinaryImage(pub_image)
+        # print(combined.shape)
 
 
         output, x, y = test.perspective_transform(np.float32(combined))
@@ -78,10 +79,19 @@ class ImageConverter:
         """publish the perspective transform"""
         # self.image_pub.publish(output)
         point = waypoint()
-        point.x = line_fit_dict['waypoint_x'] 
-        point.y = line_fit_dict['waypoint_y']
-        point.heading = line_fit_dict['waypoint_heading']
-        print(point.x, point.y, point.heading)
+        point.x_1 = line_fit_dict['waypoint_x_1'] 
+        point.y_1 = line_fit_dict['waypoint_y_1'] 
+        point.x_2 = line_fit_dict['waypoint_x_2']
+        point.y_2 = line_fit_dict['waypoint_y_2']
+
+        output = line_fit_dict['out_img']
+
+        print("x1: ", point.x_1)
+        print("y1: ", point.y_1)
+
+        print("x2: ", point.x_2)
+        print("y2: ", point.y_2)
+
 
         self.wp.publish(point)
 
@@ -90,7 +100,7 @@ class ImageConverter:
         try:
             # Convert OpenCV image to ROS image and publish
             # self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(np.float32(output), encoding='passthrough'))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, encoding='passthrough'))
         except CvBridgeError as e:
             rospy.logerr("CvBridge Error: {0}".format(e))
 

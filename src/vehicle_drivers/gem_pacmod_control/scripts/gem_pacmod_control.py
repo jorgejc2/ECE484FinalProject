@@ -54,10 +54,17 @@ class PACMod(object):
         self.gem_enable    = False
         self.pacmod_enable = True
 
+
+        # GEM vehicle enable, publish once
+        self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
+        self.enable_cmd_pub = Bool()
+        self.enable_cmd_pub.data = True
+        
+
         # GEM vehicle enable
         self.enable_sub = rospy.Subscriber('/pacmod/as_rx/enable', Bool, self.pacmod_enable_callback)
         # self.enable_cmd = Bool()
-        # self.enable_cmd.data = False
+        # self.enable_cmd.data = True
 
         # GEM vehicle gear control, neutral, forward and reverse, publish once
         self.gear_pub = rospy.Publisher('/pacmod/as_rx/shift_cmd', PacmodCmd, queue_size=1)
@@ -67,7 +74,7 @@ class PACMod(object):
         # GEM vehilce brake control
         self.brake_pub = rospy.Publisher('/pacmod/as_rx/brake_cmd', PacmodCmd, queue_size=1)
         self.brake_cmd = PacmodCmd()
-        self.brake_cmd.enable = True
+        self.brake_cmd.enable = False
         self.brake_cmd.clear  = True
         self.brake_cmd.ignore = True
 
@@ -105,7 +112,6 @@ class PACMod(object):
     def start_pacmod(self):
         
         while not rospy.is_shutdown():
-            print(self.pacmod_enable, self.gem_enable)
 
             if(self.pacmod_enable == True):
 
@@ -141,16 +147,21 @@ class PACMod(object):
                     self.accel_pub.publish(self.accel_cmd)
                     print("Gas Engaged!")
 
+                    self.enable_pub.publish(self.enable_cmd_pub)
+
                     self.gem_enable = True
 
                 else: 
+
                     if (self.ackermann_msg_gnss.steering_angle <= 45 and self.ackermann_msg_gnss.steering_angle >= -45):
                         self.turn_cmd.ui16_cmd = 1
                     elif(self.ackermann_msg_gnss.steering_angle > 45):
                         self.turn_cmd.ui16_cmd = 2 # turn left
                     else:
                         self.turn_cmd.ui16_cmd = 0 # turn right
-                    print(self.accel_cmd.f64_cmd)
+
+                    print('test')
+
                     self.accel_cmd.f64_cmd = self.ackermann_msg_gnss.acceleration
                     self.steer_cmd.angular_position = np.radians(self.ackermann_msg_gnss.steering_angle)
   

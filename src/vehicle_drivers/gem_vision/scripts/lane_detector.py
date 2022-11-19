@@ -134,8 +134,12 @@ class lanenet_detector():
 
         ## TODO
         # # GEM simulation:
-        source = np.float32([[300,680],[450,480],[830,480],[980,680]])
-        destination = np.float32([[0,720],[0,0],[1280,0],[1280,720]])
+        source = np.float32([[300,680],[440,500],[810,500],[980,680]])
+        destination = np.float32([[50,700],[50,20],[1230,20],[1230,700]])
+
+        # Final project GEM vehicle:
+        # source = np.float32([[0, 420],[220,290],[410,290],[640,420]])
+        # destination = np.float32([[0,480],[0,0],[640,0],[640,480]])
 
         # ROSBag Simulation
         # source = np.float32([[250,370],[420,250],[800,250],[950,370]])
