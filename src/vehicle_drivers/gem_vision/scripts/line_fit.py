@@ -131,19 +131,19 @@ def line_fit(binary_warped):
         # print(right_cen)
         # print(y_centers)
 
-	waypoint_y = y_centers[0]
-	waypoint_x = x_centers[0]
+	lane_width_meter = 4.4
+	lane_width_pixels = 265.634
+	meter_per_pixel = lane_width_meter/lane_width_pixels
 
-	y_dist = binary_warped.shape[0] - y_centers[0]
-	x_dist = waypoint_x - (binary_warped.shape[1]/2)
+	# rad_curv_right = np.power(1 + ((2*right_fit[0]*righty[-1]) + right_fit[1])**2, 1.5) / np.abs((2*right_fit[0]))
+	# slope = (2*left_fit[0]*lefty[-1]) + left_fit[1]
 
-	meter_conversion = 0.01 # meters per pixel
 
-	actual_x_dist = x_dist * meter_conversion
-	actual_y_dist = y_dist * meter_conversion
+	x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + leftx[-1])/2)) * meter_per_pixel
+	y_2 = (binary_warped.shape[0]- ((righty[-1] + lefty[-1])/2)) * meter_per_pixel
 
-	# waypoint_heading = math.arctan2(y_dist,x_dist)
-	waypoint_heading = np.radians(np.arctan2(actual_x_dist,actual_y_dist))
+	x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + leftx[0])/2)) * meter_per_pixel
+	y_1 = (binary_warped.shape[0]- ((righty[0] + lefty[0])/2)) * meter_per_pixel
 
 
 	# Return a dict of relevant variables
@@ -161,9 +161,11 @@ def line_fit(binary_warped):
 	# print(actual_x_dist)
 	# print(actual_y_dist)
 	# print(waypoint_heading)
-	ret['waypoint_x'] = actual_x_dist
-	ret['waypoint_y'] = actual_y_dist
-	ret['waypoint_heading'] = waypoint_heading
+	ret['waypoint_x_1'] = x_1
+	ret['waypoint_y_1'] = y_1
+	ret['waypoint_x_2'] = x_2
+	ret['waypoint_y_2'] = y_2
+
 
 	return ret
 

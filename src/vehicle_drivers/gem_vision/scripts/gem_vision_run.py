@@ -78,10 +78,19 @@ class ImageConverter:
         """publish the perspective transform"""
         # self.image_pub.publish(output)
         point = waypoint()
-        point.x = line_fit_dict['waypoint_x'] 
-        point.y = line_fit_dict['waypoint_y']
-        point.heading = line_fit_dict['waypoint_heading']
-        print(point.x, point.y, point.heading)
+        point.x_1 = line_fit_dict['waypoint_x_1'] 
+        point.y_1 = line_fit_dict['waypoint_y_1'] 
+        point.x_2 = line_fit_dict['waypoint_x_2']
+        point.y_2 = line_fit_dict['waypoint_y_2']
+
+        output = line_fit_dict['out_img']
+
+        print("x1: ", point.x_1)
+        print("y1: ", point.y_1)
+
+        print("x2: ", point.x_2)
+        print("y2: ", point.y_2)
+
 
         self.wp.publish(point)
 
