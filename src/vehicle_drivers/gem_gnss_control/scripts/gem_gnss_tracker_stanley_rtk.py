@@ -131,6 +131,10 @@ class Stanley(object):
 
         self.waypoint = rospy.Subscriber('waypoint', waypoint, self.waypoint_callback)
 
+        self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
+        self.enable_cmd = Bool()
+        self.enable_cmd.data = True
+
         self.ackermann_msg                         = AckermannDrive()
         self.ackermann_msg.steering_angle_velocity = 0.0
         self.ackermann_msg.acceleration            = 0.0
@@ -317,6 +321,8 @@ class Stanley(object):
             print("steering", steering)
             print("steering angle", steering_angle)
             print("throttle_percenT ", throttle_percent)
+
+            self.enable_pub.publish(self.enable_cmd)
 
             if (filt_vel < 0.2):
                 self.ackermann_msg.acceleration   = throttle_percent
