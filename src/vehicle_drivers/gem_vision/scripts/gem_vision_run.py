@@ -26,9 +26,13 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from std_msgs.msg import String, Float64
+from rospy.numpy_msg import numpy_msg
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
+from lane_detector import lanenet_detector
+from line_fit import line_fit
+from gem_vision.msg import waypoint
 
 
 class ImageConverter:
@@ -47,6 +51,7 @@ class ImageConverter:
         self.image_sub = rospy.Subscriber("/zed2/zed_node/left/image_rect_color", Image, self.image_callback)
         self.image_pub = rospy.Publisher("/front_camera/image_processed", Image, queue_size=1)
 
+        self.wp = rospy.Publisher('waypoint', waypoint , queue_size=1)
 
     def image_callback(self, ros_image):
 
@@ -60,14 +65,42 @@ class ImageConverter:
 
         pub_image = np.copy(frame)
 
+        # print(pub_image.shape)
+
+        test = lanenet_detector()
+        combined = test.combinedBinaryImage(pub_image)
+        # print(combined.shape)
 
 
+        output, x, y = test.perspective_transform(np.float32(combined))
+
+        line_fit_dict = line_fit(output)
+
+        """publish the perspective transform"""
+        # self.image_pub.publish(output)
+        point = waypoint()
+        point.x_1 = line_fit_dict['waypoint_x_1'] 
+        point.y_1 = line_fit_dict['waypoint_y_1'] 
+        point.x_2 = line_fit_dict['waypoint_x_2']
+        point.y_2 = line_fit_dict['waypoint_y_2']
+
+        output = line_fit_dict['out_img']
+
+        print("x1: ", point.x_1)
+        print("y1: ", point.y_1)
+
+        print("x2: ", point.x_2)
+        print("y2: ", point.y_2)
+
+
+        self.wp.publish(point)
 
         # ----------------------------------------------------------------------
 
         try:
             # Convert OpenCV image to ROS image and publish
-            self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
+            # self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, encoding='passthrough'))
         except CvBridgeError as e:
             rospy.logerr("CvBridge Error: {0}".format(e))
 

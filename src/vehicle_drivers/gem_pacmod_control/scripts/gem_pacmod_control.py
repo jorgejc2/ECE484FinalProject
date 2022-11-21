@@ -54,10 +54,17 @@ class PACMod(object):
         self.gem_enable    = False
         self.pacmod_enable = False
 
+
+        # GEM vehicle enable, publish once
+        self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
+        self.enable_cmd_pub = Bool()
+        self.enable_cmd_pub.data = True
+        
+
         # GEM vehicle enable
         self.enable_sub = rospy.Subscriber('/pacmod/as_rx/enable', Bool, self.pacmod_enable_callback)
         # self.enable_cmd = Bool()
-        # self.enable_cmd.data = False
+        # self.enable_cmd.data = True
 
         # GEM vehicle gear control, neutral, forward and reverse, publish once
         self.gear_pub = rospy.Publisher('/pacmod/as_rx/shift_cmd', PacmodCmd, queue_size=1)
@@ -74,7 +81,7 @@ class PACMod(object):
         # GEM vechile forward motion control
         self.accel_pub = rospy.Publisher('/pacmod/as_rx/accel_cmd', PacmodCmd, queue_size=1)
         self.accel_cmd = PacmodCmd()
-        self.accel_cmd.enable = False
+        self.accel_cmd.enable = True
         self.accel_cmd.clear  = True
         self.accel_cmd.ignore = True
 
@@ -140,6 +147,8 @@ class PACMod(object):
                     self.accel_pub.publish(self.accel_cmd)
                     print("Gas Engaged!")
 
+                    self.enable_pub.publish(self.enable_cmd_pub)
+
                     self.gem_enable = True
 
                 else: 
@@ -150,6 +159,8 @@ class PACMod(object):
                         self.turn_cmd.ui16_cmd = 2 # turn left
                     else:
                         self.turn_cmd.ui16_cmd = 0 # turn right
+
+                    print('test')
 
                     self.accel_cmd.f64_cmd = self.ackermann_msg_gnss.acceleration
                     self.steer_cmd.angular_position = np.radians(self.ackermann_msg_gnss.steering_angle)
