@@ -33,6 +33,8 @@ from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from gem_vision.msg import waypoint
 
+VISION = True
+
 
 # GEM PACMod Headers
 from pacmod_msgs.msg import PositionWithSpeed, PacmodCmd, SystemRptFloat, VehicleSpeedRpt
@@ -185,6 +187,8 @@ class Stanley(object):
         self.waypoint_y_1 = None
         self.waypoint_x_2 = None
         self.waypoint_y_2 = None
+        self.crosstrack_error = None
+        self.heading_error = None
 
         # read waypoints into the system           
         self.read_waypoints() 
@@ -205,13 +209,16 @@ class Stanley(object):
         self.waypoint_y_1 = msg.y_1
         self.waypoint_x_2 = msg.x_2
         self.waypoint_y_2 = msg.y_2
-
-    def enable_callback(self, msg):
-        self.pacmod_enable = msg.data
+        self.crosstrack_error = msg.crosstrack_error
+        self.heading_error = msg.heading_error
 
     # Get vehicle speed
     def speed_callback(self, msg):
         self.speed = round(msg.vehicle_speed, 3) # forward velocity in m/s
+    
+    def enable_callback(self, msg):
+        self.pacmod_enable = msg.data
+        print("pacmod enable test")
 
 
     # Get value of steering wheel
@@ -352,89 +359,112 @@ class Stanley(object):
 
             k = 0.4
             # coordinates of rct_errorerence point (center of frontal axle) in global frame
+            filt_vel = np.squeeze(self.speed_filter.get_data(self.speed))
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
             if self.waypoint_x_1 is None:
                 continue
 
+            if VISION:
+                print(self.waypoint_x_1)
+                # print("curr_x", curr_x)
+                # print("curr_y", curr_y)
 
-            # print(self.waypoint_x_1)
-            # print("curr_x", curr_x)
-            # print("curr_y", curr_y)
+                # front_x = self.wheelbase*np.cos(curr_yaw) + curr_x
+                # front_y = self.wheelbase*np.sin(curr_yaw) + curr_y
 
-            # front_x = self.wheelbase*np.cos(curr_yaw) + curr_x
-            # front_y = self.wheelbase*np.sin(curr_yaw) + curr_y
+                # --------------------------- Longitudinal control using PD controller ---------------------------
 
-            # --------------------------- Longitudinal control using PD controller ---------------------------
+                # filt_vel = np.squeeze(self.speed_filter.get_data(self.speed))
+                a_expected = self.pid_speed.get_control(rospy.get_time(), self.desired_speed - filt_vel)
 
-            filt_vel = np.squeeze(self.speed_filter.get_data(self.speed))
-            a_expected = self.pid_speed.get_control(rospy.get_time(), self.desired_speed - filt_vel)
+                if a_expected > 0.64 :
+                    throttle_percent = 0.5
 
-            if a_expected > 0.64 :
-                throttle_percent = 0.5
+                if a_expected < 0.0 :
+                    throttle_percent = 0.0
 
-            if a_expected < 0.0 :
-                throttle_percent = 0.0
+                throttle_percent = (a_expected+2.3501) / 7.3454
 
-            throttle_percent = (a_expected+2.3501) / 7.3454
+                if throttle_percent > self.max_accel:
+                    throttle_percent = self.max_accel
 
-            if throttle_percent > self.max_accel:
-                throttle_percent = self.max_accel
+                if throttle_percent < 0.3:
+                    throttle_percent = 0.37
 
-            if throttle_percent < 0.3:
-                throttle_percent = 0.37
+                # -------------------------------------- Stanley controller --------------------------------------
 
-            # -------------------------------------- Stanley controller --------------------------------------
+                error_num = ((self.waypoint_x_2 - self.waypoint_x_1) * (self.waypoint_y_1 - curr_y)) - ((self.waypoint_x_1 - curr_x) * (self.waypoint_y_2 - self.waypoint_y_1))
+                error_denom = np.sqrt((self.waypoint_x_2 - self.waypoint_x_1)**2 + (self.waypoint_y_2 - self.waypoint_y_1)**2)
+                error = error_num/error_denom
 
-            error_num = ((self.waypoint_x_2 - self.waypoint_x_1) * (self.waypoint_y_1 - curr_y)) - ((self.waypoint_x_1 - curr_x) * (self.waypoint_y_2 - self.waypoint_y_1))
-            error_denom = np.sqrt((self.waypoint_x_2 - self.waypoint_x_1)**2 + (self.waypoint_y_2 - self.waypoint_y_1)**2)
-            error = error_num/error_denom
+                theta = np.arctan2(self.waypoint_y_2 - self.waypoint_y_1, self.waypoint_x_2 - self.waypoint_x_1)
+                heading_error = theta - curr_yaw
+                steering_correction = np.arctan2(filt_vel, k*error)
+                steering = np.round(np.clip(self.pi_2_pi(heading_error + steering_correction), -0.61, 0.61), 3)
+                steering_degrees = np.degrees(steering)
+                steering_angle = self.front2steer(steering_degrees)
 
-            theta = np.arctan2(self.waypoint_y_2 - self.waypoint_y_1, self.waypoint_x_2 - self.waypoint_x_1)
-            heading_error = theta - curr_yaw
-            steering_correction = np.arctan2(filt_vel, k*error)
-            steering = np.round(np.clip(self.pi_2_pi(heading_error + steering_correction), -0.61, 0.61), 3)
-            steering_degrees = np.degrees(steering)
-            steering_angle = self.front2steer(steering_degrees)
+                print("steering", steering)
+                print("steering angle", steering_angle)
+                print("throttle_percenT ", throttle_percent)
 
-            print("steering", steering)
-            print("steering angle", steering_angle)
-            print("throttle_percenT ", throttle_percent)
-
-            # self.accel_cmd.f64_cmd = throttle_percent
-            # self.steer_cmd.angular_position = np.radians(steering_angle)
-            # self.accel_pub.publish(self.accel_cmd)
-            # self.steer_pub.publish(self.steer_cmd)
-            # self.turn_pub.publish(self.turn_cmd)
-
-            self.turn_cmd.ui16_cmd = 2 # turn left
-
-            self.enable_pub.publish(self.enable_cmd)
-            self.gear_pub.publish(self.gear_cmd)
-            self.brake_pub.publish(self.brake_cmd)
-            self.turn_pub.publish(self.turn_cmd)
-
-            # self.brake_pub.publish(self.brake_cmd)
-
-            if (filt_vel < 0.2):
                 # self.accel_cmd.f64_cmd = throttle_percent
-                self.steer_cmd.angular_position  = 0
-                # print(self.ackermann_msg.steering_angle)
+                # self.steer_cmd.angular_position = np.radians(steering_angle)
+                # self.accel_pub.publish(self.accel_cmd)
+                # self.steer_pub.publish(self.steer_cmd)
+                # self.turn_pub.publish(self.turn_cmd)
+
+                self.turn_cmd.ui16_cmd = 2 # turn left
+
+                # self.enable_pub.publish(self.enable_cmd)
+                self.gear_pub.publish(self.gear_cmd)
+                self.brake_pub.publish(self.brake_cmd)
+                self.turn_pub.publish(self.turn_cmd)
+
+                # self.brake_pub.publish(self.brake_cmd)
+
+                if (filt_vel < 0.2):
+                    # self.accel_cmd.f64_cmd = throttle_percent
+                    self.steer_cmd.angular_position  = 0
+                    # print(self.ackermann_msg.steering_angle)
+                else:
+                    # self.accel_cmd.f64_cmd    = throttle_percent
+                    self.steer_cmd.angular_position = round(steering_angle,1)
+                    # print(self.ackermann_msg.steering_angle)
+
+                
+                self.accel_cmd.f64_cmd = 0.36
+
+                self.accel_pub.publish(self.accel_cmd)
+                self.steer_pub.publish(self.steer_cmd)
+
             else:
-                # self.accel_cmd.f64_cmd    = throttle_percent
-                self.steer_cmd.angular_position = round(steering_angle,1)
-                # print(self.ackermann_msg.steering_angle)
 
-            
-            self.accel_cmd.f64_cmd = 0.36
+                # when VISION is True
 
-            self.accel_pub.publish(self.accel_cmd)
-            self.steer_pub.publish(self.steer_cmd)
+                # crosstrack error:
+                ef = self.crosstrack_error
+                # heading error:
+                theta_e = self.heading_error
 
-            # ------------------------------------------------------------------------------------------------ 
+                # ----------------------------------------------------------------------------------- #
 
-            # print(self.ackermann_msg.acceleration, self.ackermann_msg.steering_angle)
-            # self.stanley_pub.publish(self.ackermann_msg)
+                k = 0.05 # 0.45
+                delta = round(theta_e - math.atan2(k * ef, filt_vel), 3)
+
+                # theta_e  = round(np.degrees(theta_e), 1)
+
+                ef = round(ef,3)
+                # print("theta_p: {}, theta: {}".format(theta_p, theta))
+                print("Crosstrack Error: " + str(ef) + ", Heading Error: " + str(theta_e) + ", Delta: " + str(delta) + "\n")
+
+                # ------------------------------------------------------------------------------------------------ 
+                self.accel_cmd.f64_cmd = 0.36
+                self.steer_cmd.angular_position = delta
+
+                self.accel_pub.publish(self.accel_cmd)
+                self.steer_pub.publish(self.steer_cmd)
 
             self.rate.sleep()
 
