@@ -132,26 +132,29 @@ class Stanley(object):
         self.waypoint = rospy.Subscriber('waypoint', waypoint, self.waypoint_callback)
 
 
-        self.gem_enable    = False
-        self.pacmod_enable = True
+        # -------------------- PACMod setup --------------------
 
+        self.enable_sub = rospy.Subscriber("/pacmod/as_tx/enable", Bool, self.enable_callback)
+
+        self.gem_enable    = False
+        self.pacmod_enable = False
+
+        # GEM vehicle enable, publish once
         self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
         self.enable_cmd = Bool()
-        self.enable_cmd.data = True
+        self.enable_cmd.data = False
 
-         # GEM vehicle gear control, neutral, forward and reverse, publish once
+        # GEM vehicle gear control, neutral, forward and reverse, publish once
         self.gear_pub = rospy.Publisher('/pacmod/as_rx/shift_cmd', PacmodCmd, queue_size=1)
         self.gear_cmd = PacmodCmd()
-        self.gear_cmd.enable = True
         self.gear_cmd.ui16_cmd = 2 # SHIFT_NEUTRAL
 
         # GEM vehilce brake control
         self.brake_pub = rospy.Publisher('/pacmod/as_rx/brake_cmd', PacmodCmd, queue_size=1)
         self.brake_cmd = PacmodCmd()
-        self.brake_cmd.enable = True
-        self.brake_cmd.clear  = False
-        self.brake_cmd.ignore = False
-        self.brake_cmd.f64_cmd = 0.0
+        self.brake_cmd.enable = False
+        self.brake_cmd.clear  = True
+        self.brake_cmd.ignore = True
 
         # GEM vechile forward motion control
         self.accel_pub = rospy.Publisher('/pacmod/as_rx/accel_cmd', PacmodCmd, queue_size=1)
@@ -206,6 +209,10 @@ class Stanley(object):
     # Get vehicle speed
     def speed_callback(self, msg):
         self.speed = round(msg.vehicle_speed, 3) # forward velocity in m/s
+    
+    def enable_callback(self, msg):
+        self.pacmod_enable = msg.data
+        print("pacmod enable test")
 
 
     # Get value of steering wheel
@@ -340,7 +347,7 @@ class Stanley(object):
                     print("Gas Engaged!")
 
                     self.gem_enable = True
-                    self.enable_pub.publish(self.enable_cmd)
+                    # self.enable_pub.publish(self.enable_cmd)
 
 
 
@@ -403,7 +410,7 @@ class Stanley(object):
 
             self.turn_cmd.ui16_cmd = 2 # turn left
 
-            self.enable_pub.publish(self.enable_cmd)
+            # self.enable_pub.publish(self.enable_cmd)
             self.gear_pub.publish(self.gear_cmd)
             self.brake_pub.publish(self.brake_cmd)
             self.turn_pub.publish(self.turn_cmd)

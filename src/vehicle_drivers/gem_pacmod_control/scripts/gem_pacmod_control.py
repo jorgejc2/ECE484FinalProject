@@ -56,9 +56,9 @@ class PACMod(object):
 
 
         # GEM vehicle enable, publish once
-        self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
-        self.enable_cmd_pub = Bool()
-        self.enable_cmd_pub.data = True
+        # self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
+        # self.enable_cmd_pub = Bool()
+        # self.enable_cmd_pub.data = True
         
 
         # GEM vehicle enable
@@ -147,7 +147,7 @@ class PACMod(object):
                     self.accel_pub.publish(self.accel_cmd)
                     print("Gas Engaged!")
 
-                    self.enable_pub.publish(self.enable_cmd_pub)
+                    # self.enable_pub.publish(self.enable_cmd_pub)
 
                     self.gem_enable = True
 
