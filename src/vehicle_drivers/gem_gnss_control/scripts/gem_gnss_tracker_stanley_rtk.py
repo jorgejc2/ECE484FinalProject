@@ -114,7 +114,8 @@ class Stanley(object):
         self.offset = 1.1 # meters
 
         # PID for longitudinal control
-        self.desired_speed = 0.6  # m/s
+        self.desired_speed = 0.3  # m/s
+
         self.max_accel     = 0.48 # % of acceleration
         self.pid_speed     = PID(0.5, 0.0, 0.1, wg=20)
         self.speed_filter  = Onlinct_errorilter(1.2, 30, 4)
@@ -212,7 +213,6 @@ class Stanley(object):
     
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
-        print("pacmod enable test")
 
 
     # Get value of steering wheel
@@ -359,7 +359,7 @@ class Stanley(object):
                 continue
 
 
-            print(self.waypoint_x_1)
+            # print(self.waypoint_x_1)
             # print("curr_x", curr_x)
             # print("curr_y", curr_y)
 
@@ -387,11 +387,20 @@ class Stanley(object):
 
             # -------------------------------------- Stanley controller --------------------------------------
 
-            error_num = ((self.waypoint_x_2 - self.waypoint_x_1) * (self.waypoint_y_1 - curr_y)) - ((self.waypoint_x_1 - curr_x) * (self.waypoint_y_2 - self.waypoint_y_1))
+            error_num = ((self.waypoint_x_2 - self.waypoint_x_1 + 0.14) * (self.waypoint_y_1 - curr_y)) - ((self.waypoint_x_1 - curr_x) * (self.waypoint_y_2 - self.waypoint_y_1))
             error_denom = np.sqrt((self.waypoint_x_2 - self.waypoint_x_1)**2 + (self.waypoint_y_2 - self.waypoint_y_1)**2)
             error = error_num/error_denom
+            # print("error: ", error)
+            # print("curr_x", curr_x)
+            # print("curr_y", curr_y)
+
+            # curr_x and curr_y are huge values
+
+            # error initiallly is approx -7000000
+            # thetha initally isa 1.65 radians
 
             theta = np.arctan2(self.waypoint_y_2 - self.waypoint_y_1, self.waypoint_x_2 - self.waypoint_x_1)
+            # print("theta: ", theta)
             heading_error = theta - curr_yaw
             steering_correction = np.arctan2(filt_vel, k*error)
             steering = np.round(np.clip(self.pi_2_pi(heading_error + steering_correction), -0.61, 0.61), 3)
@@ -423,7 +432,8 @@ class Stanley(object):
                 # print(self.ackermann_msg.steering_angle)
             else:
                 # self.accel_cmd.f64_cmd    = throttle_percent
-                self.steer_cmd.angular_position = round(steering_angle,1)
+                self.steer_cmd.angular_position = -1* round(np.radians(steering_angle),1)
+                # self.steer_cmd.angular_position = round(steering,1)
                 # print(self.ackermann_msg.steering_angle)
 
             
