@@ -117,22 +117,11 @@ def line_fit(binary_warped):
 	##TODO
 		# calculate polyfit line for both left and right lanes
 		left_fit = np.polyfit(lefty, leftx, 2)
-		
-	####
-	except TypeError:
-		print("Unable to detect left lane")
-		left_fit = None
-
-	try:
-	##TODO
-		# calculate polyfit line for both left and right lanes
 		right_fit = np.polyfit(righty, rightx, 2)
-		
 	####
 	except TypeError:
-		print("Unable to detect right lane")
-		right_fit = None
-
+		print("Unable to detect lanes")
+		return None
 
 	x_centers = []
 	for i in range(len(left_centroids)):
@@ -142,29 +131,19 @@ def line_fit(binary_warped):
         # print(right_cen)
         # print(y_centers)
 
-	lane_width_meter = 3.03
-	lane_width_pixels = 1017
-	meter_per_pixel = lane_width_meter/lane_width_pixels
+	waypoint_y = y_centers[0]
+	waypoint_x = x_centers[0]
 
-	# rad_curv_right = np.power(1 + ((2*right_fit[0]*righty[-1]) + right_fit[1])**2, 1.5) / np.abs((2*right_fit[0]))
-	# slope = (2*left_fit[0]*lefty[-1]) + left_fit[1]
+	y_dist = binary_warped.shape[0] - y_centers[0]
+	x_dist = waypoint_x - (binary_warped.shape[1]/2)
 
-	# estimate lane pixel location based on width of the lanes if a line fit is not available
-	if left_fit is None and right_fit is not None:
-		leftx[0] = rightx[0] - lane_width_pixels
-		leftx[-1] = rightx[-1] - lane_width_pixels
-	elif left_fit is not None and right_fit is None:
-		rightx[0] = leftx[0] + lane_width_pixels
-		rightx[-1] = leftx[-1] + lane_width_pixels
+	meter_conversion = 0.01 # meters per pixel
 
+	actual_x_dist = x_dist * meter_conversion
+	actual_y_dist = y_dist * meter_conversion
 
-	x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + leftx[-1])/2)) * meter_per_pixel
-	y_2 = (binary_warped.shape[0]- ((righty[-1] + lefty[-1])/2)) * meter_per_pixel
-
-	x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + leftx[0])/2)) * meter_per_pixel
-	y_1 = (binary_warped.shape[0]- ((righty[0] + lefty[0])/2)) * meter_per_pixel
-
-	cv2.imwrite("test_img.png", out_img)
+	# waypoint_heading = math.arctan2(y_dist,x_dist)
+	waypoint_heading = np.radians(np.arctan2(actual_x_dist,actual_y_dist))
 
 
 	# Return a dict of relevant variables
@@ -174,19 +153,185 @@ def line_fit(binary_warped):
 	ret['nonzerox'] = nonzerox
 	ret['nonzeroy'] = nonzeroy
 	ret['out_img'] = out_img
-	# ret['left_lane_inds'] = left_lane_inds
-	# ret['right_lane_inds'] = right_lane_inds
-	# ret['left_centroids'] = left_centroids
-	# ret['right_centroids'] = right_centroids
-	# ret['y_centers'] = y_centers
+	ret['left_lane_inds'] = left_lane_inds
+	ret['right_lane_inds'] = right_lane_inds
+	ret['left_centroids'] = left_centroids
+	ret['right_centroids'] = right_centroids
+	ret['y_centers'] = y_centers
 	# print(actual_x_dist)
 	# print(actual_y_dist)
 	# print(waypoint_heading)
-	ret['waypoint_x_1'] = x_1
-	ret['waypoint_y_1'] = y_1
-	ret['waypoint_x_2'] = x_2
-	ret['waypoint_y_2'] = y_2
-
+	ret['waypoint_x'] = actual_x_dist
+	ret['waypoint_y'] = actual_y_dist
+	ret['waypoint_heading'] = waypoint_heading
 
 	return ret
+
+def tune_fit(binary_warped, left_fit, right_fit):
+	"""
+	Given a previously fit line, quickly try to find the line based on previous lines
+	"""
+	# Assume you now have a new warped binary image
+	# from the next frame of video (also called "binary_warped")
+	# It's now much easier to find line pixels!
+	nonzero = binary_warped.nonzero()
+	nonzeroy = np.array(nonzero[0])
+	nonzerox = np.array(nonzero[1])
+	margin = 100
+	left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + left_fit[2] + margin)))
+	right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] - margin)) & (nonzerox < (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + right_fit[2] + margin)))
+
+	# Again, extract left and right line pixel positions
+	leftx = nonzerox[left_lane_inds]
+	lefty = nonzeroy[left_lane_inds]
+	rightx = nonzerox[right_lane_inds]
+	righty = nonzeroy[right_lane_inds]
+
+	# If we don't find enough relevant points, return all None (this means error)
+	min_inds = 10
+	if lefty.shape[0] < min_inds or righty.shape[0] < min_inds:
+		return None
+
+	# Fit a second order polynomial to each
+	left_fit = np.polyfit(lefty, leftx, 2)
+	right_fit = np.polyfit(righty, rightx, 2)
+	# Generate x and y values for plotting
+	ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+	left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+	right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+	# Return a dict of relevant variables
+	ret = {}
+	ret['left_fit'] = left_fit
+	ret['right_fit'] = right_fit
+	ret['nonzerox'] = nonzerox
+	ret['nonzeroy'] = nonzeroy
+	ret['left_lane_inds'] = left_lane_inds
+	ret['right_lane_inds'] = right_lane_inds
+
+	return ret
+
+
+def viz1(binary_warped, ret, save_file=None):
+	"""
+	Visualize each sliding window location and predicted lane lines, on binary warped image
+	save_file is a string representing where to save the image (if None, then just display)
+	"""
+	# Grab variables from ret dictionary
+	left_fit = ret['left_fit']
+	right_fit = ret['right_fit']
+	nonzerox = ret['nonzerox']
+	nonzeroy = ret['nonzeroy']
+	out_img = ret['out_img']
+	left_lane_inds = ret['left_lane_inds']
+	right_lane_inds = ret['right_lane_inds']
+
+	# Generate x and y values for plotting
+	ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+	left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+	right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+	out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+	out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+	plt.imshow(out_img)
+	plt.plot(left_fitx, ploty, color='yellow')
+	plt.plot(right_fitx, ploty, color='yellow')
+	plt.xlim(0, 1280)
+	plt.ylim(720, 0)
+	if save_file is None:
+		plt.show()
+	else:
+		plt.savefig(save_file)
+	plt.gcf().clear()
+
+
+def bird_fit(binary_warped, ret, save_file=None):
+	"""
+	Visualize the predicted lane lines with margin, on binary warped image
+	save_file is a string representing where to save the image (if None, then just display)
+	"""
+	# Grab variables from ret dictionary
+	left_fit = ret['left_fit']
+	right_fit = ret['right_fit']
+	nonzerox = ret['nonzerox']
+	nonzeroy = ret['nonzeroy']
+	left_lane_inds = ret['left_lane_inds']
+	right_lane_inds = ret['right_lane_inds']
+
+	# Create an image to draw on and an image to show the selection window
+	out_img = (np.dstack((binary_warped, binary_warped, binary_warped))*255).astype('uint8')
+	window_img = np.zeros_like(out_img)
+	# Color in left and right line pixels
+	out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+	out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+
+	# Generate x and y values for plotting
+	ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
+	left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+	right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+	# Generate a polygon to illustrate the search window area
+	# And recast the x and y points into usable format for cv2.fillPoly()
+	margin = 100  # NOTE: Keep this in sync with *_fit()
+	left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+	left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
+	left_line_pts = np.hstack((left_line_window1, left_line_window2))
+	right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+	right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
+	right_line_pts = np.hstack((right_line_window1, right_line_window2))
+
+	# Draw the lane onto the warped blank image
+	cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
+	cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
+	result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+
+	plt.imshow(result)
+	plt.plot(left_fitx, ploty, color='yellow')
+	plt.plot(right_fitx, ploty, color='yellow')
+	plt.xlim(0, 1280)
+	plt.ylim(720, 0)
+
+	# cv2.imshow('bird',result)
+	# cv2.imwrite('bird_from_cv2.png', result)
+
+	# if save_file is None:
+	# 	plt.show()
+	# else:
+	# 	plt.savefig(save_file)
+	# plt.gcf().clear()
+
+	return result
+
+
+def final_viz(undist, left_fit, right_fit, m_inv):
+	"""
+	Final lane line prediction visualized and overlayed on top of original image
+	"""
+	# Generate x and y values for plotting
+	ploty = np.linspace(0, undist.shape[0]-1, undist.shape[0])
+	left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+	right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+	# Create an image to draw the lines on
+	#warp_zero = np.zeros_like(warped).astype(np.uint8)
+	#color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+	color_warp = np.zeros((720, 1280, 3), dtype='uint8')  # NOTE: Hard-coded image dimensions
+
+	# Recast the x and y points into usable format for cv2.fillPoly()
+	pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+	pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+	pts = np.hstack((pts_left, pts_right))
+
+	# Draw the lane onto the warped blank image
+	cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+
+	# Warp the blank back to original image space using inverse perspective matrix (Minv)
+	newwarp = cv2.warpPerspective(color_warp, m_inv, (undist.shape[1], undist.shape[0]))
+	# Combine the result with the original image
+	# Convert arrays to 8 bit for later cv to ros image transfer
+	undist = np.array(undist, dtype=np.uint8)
+	newwarp = np.array(newwarp, dtype=np.uint8)
+	result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
+
+	return result
 
