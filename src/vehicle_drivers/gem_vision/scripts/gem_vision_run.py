@@ -30,7 +30,8 @@ from rospy.numpy_msg import numpy_msg
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
-from lane_detector import lanenet_detector
+# from lane_detector import lanenet_detector
+from perception import lanenet_detector
 from line_fit import line_fit
 from gem_vision.msg import waypoint
 

@@ -117,11 +117,22 @@ def line_fit(binary_warped):
 	##TODO
 		# calculate polyfit line for both left and right lanes
 		left_fit = np.polyfit(lefty, leftx, 2)
-		right_fit = np.polyfit(righty, rightx, 2)
+		
 	####
 	except TypeError:
-		print("Unable to detect lanes")
-		return None
+		print("Unable to detect left lane")
+		left_fit = None
+
+	try:
+	##TODO
+		# calculate polyfit line for both left and right lanes
+		right_fit = np.polyfit(righty, rightx, 2)
+		
+	####
+	except TypeError:
+		print("Unable to detect right lane")
+		right_fit = None
+
 
 	x_centers = []
 	for i in range(len(left_centroids)):
@@ -137,6 +148,14 @@ def line_fit(binary_warped):
 
 	# rad_curv_right = np.power(1 + ((2*right_fit[0]*righty[-1]) + right_fit[1])**2, 1.5) / np.abs((2*right_fit[0]))
 	# slope = (2*left_fit[0]*lefty[-1]) + left_fit[1]
+
+	# estimate lane pixel location based on width of the lanes if a line fit is not available
+	if left_fit is None and right_fit is not None:
+		leftx[0] = rightx[0] - lane_width_pixels
+		leftx[-1] = rightx[-1] - lane_width_pixels
+	elif left_fit is not None and right_fit is None:
+		rightx[0] = leftx[0] + lane_width_pixels
+		rightx[-1] = leftx[-1] + lane_width_pixels
 
 
 	x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + leftx[-1])/2)) * meter_per_pixel
