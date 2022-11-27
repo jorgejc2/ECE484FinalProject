@@ -55,7 +55,7 @@ def line_fit(binary_warped):
 		# get the top and bottom y pixel postions (same for right and left boxed)
 		y_bottom = binary_warped.shape[0] - window_height * (window + 1)
 		y_top = binary_warped.shape[0] - window_height * (window)
-		y_center = (y_top + y_top)/2
+		y_center = (y_top + y_bottom)/2
 		y_centers.append(y_center)
 
 		# get the left and right x pixel positions
@@ -114,14 +114,19 @@ def line_fit(binary_warped):
 	# the second order polynomial is unable to be sovled.
 	# Thus, it is unable to detect edges.
 	try:
-	##TODO
 		# calculate polyfit line for both left and right lanes
 		left_fit = np.polyfit(lefty, leftx, 2)
+	####
+	except TypeError:
+		left_fit = None
+
+	try:
+		# calculate polyfit line for both left and right lanes
 		right_fit = np.polyfit(righty, rightx, 2)
 	####
 	except TypeError:
-		print("Unable to detect lanes")
-		return None
+		right_fit = None
+		
 
 	x_centers = []
 	for i in range(len(left_centroids)):
@@ -131,19 +136,38 @@ def line_fit(binary_warped):
         # print(right_cen)
         # print(y_centers)
 
-	waypoint_y = y_centers[0]
-	waypoint_x = x_centers[0]
+	lane_width_meter = 3.03
+	lane_width_pixels = 1017
+	meter_per_pixel = lane_width_meter/lane_width_pixels
 
-	y_dist = binary_warped.shape[0] - y_centers[0]
-	x_dist = waypoint_x - (binary_warped.shape[1]/2)
+	# rad_curv_right = np.power(1 + ((2*right_fit[0]*righty[-1]) + right_fit[1])**2, 1.5) / np.abs((2*right_fit[0]))
+	# slope = (2*left_fit[0]*lefty[-1]) + left_fit[1]
 
-	meter_conversion = 0.01 # meters per pixel
+	if left_fit is None and right_fit is None:
+		print("Unable to detect lanes")
+		return None
 
-	actual_x_dist = x_dist * meter_conversion
-	actual_y_dist = y_dist * meter_conversion
+	if left_fit is None:
+		x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + (rightx[-1] - lane_width_pixels))/2)) * meter_per_pixel
+		y_2 = (binary_warped.shape[0]- ((righty[-1] + righty[-1])/2)) * meter_per_pixel
 
-	# waypoint_heading = math.arctan2(y_dist,x_dist)
-	waypoint_heading = np.radians(np.arctan2(actual_x_dist,actual_y_dist))
+		x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + (rightx[0] - lane_width_pixels))/2)) * meter_per_pixel
+		y_1 = (binary_warped.shape[0]- ((righty[0] + righty[0])/2)) * meter_per_pixel
+	elif right_fit is None:
+		x_2 = (binary_warped.shape[1]/2 - ((leftx[-1] + lane_width_pixels + leftx[-1])/2)) * meter_per_pixel
+		y_2 = (binary_warped.shape[0]- ((lefty[-1] + lefty[-1])/2)) * meter_per_pixel
+
+		x_1 = (binary_warped.shape[1]/2 - ((leftx[0] + lane_width_pixels + leftx[0])/2)) * meter_per_pixel
+		y_1 = (binary_warped.shape[0]- ((lefty[0] + lefty[0])/2)) * meter_per_pixel
+	else:
+		x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + leftx[-1])/2)) * meter_per_pixel
+		y_2 = (binary_warped.shape[0]- ((righty[-1] + lefty[-1])/2)) * meter_per_pixel
+
+		x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + leftx[0])/2)) * meter_per_pixel
+		y_1 = (binary_warped.shape[0]- ((righty[0] + lefty[0])/2)) * meter_per_pixel
+
+	# uncomment to save the image, but also slows down performance
+	# cv2.imwrite("test_img.png", out_img)
 
 
 	# Return a dict of relevant variables
@@ -161,9 +185,11 @@ def line_fit(binary_warped):
 	# print(actual_x_dist)
 	# print(actual_y_dist)
 	# print(waypoint_heading)
-	ret['waypoint_x'] = actual_x_dist
-	ret['waypoint_y'] = actual_y_dist
-	ret['waypoint_heading'] = waypoint_heading
+	ret['waypoint_x_1'] = x_1
+	ret['waypoint_y_1'] = y_1
+	ret['waypoint_x_2'] = x_2
+	ret['waypoint_y_2'] = y_2
+
 
 	return ret
 
@@ -334,4 +360,3 @@ def final_viz(undist, left_fit, right_fit, m_inv):
 	result = cv2.addWeighted(undist, 1, newwarp, 0.3, 0)
 
 	return result
-
