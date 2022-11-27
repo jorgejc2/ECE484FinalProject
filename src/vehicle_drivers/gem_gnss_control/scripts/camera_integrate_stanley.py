@@ -29,6 +29,41 @@ class Stanley_Camera(Stanley):
     def start_stanley_camera(self):
         while not rospy.is_shutdown():
 
+            if (self.gem_enable == False):
+
+                if(self.pacmod_enable == True):
+
+                    # ---------- enable PACMod ----------
+
+                    # enable forward gear
+                    self.gear_cmd.ui16_cmd = 3
+
+                    # enable brake
+                    self.brake_cmd.enable  = True
+                    self.brake_cmd.clear   = False
+                    self.brake_cmd.ignore  = False
+                    self.brake_cmd.f64_cmd = 0.0
+
+                    # enable gas 
+                    self.accel_cmd.enable  = True
+                    self.accel_cmd.clear   = False
+                    self.accel_cmd.ignore  = False
+                    self.accel_cmd.f64_cmd = 0.0
+
+                    self.gear_pub.publish(self.gear_cmd)
+                    print("Foward Engaged!")
+
+                    self.turn_pub.publish(self.turn_cmd)
+                    print("Turn Signal Ready!")
+                    
+                    self.brake_pub.publish(self.brake_cmd)
+                    print("Brake Engaged!")
+
+                    self.accel_pub.publish(self.accel_cmd)
+                    print("Gas Engaged!")
+
+                    self.gem_enable = True
+
             # self.path_points_x   = np.array(self.path_points_lon_x)
             # self.path_points_y   = np.array(self.path_points_lat_y)
             # self.path_points_yaw = np.array(self.path_points_heading)
