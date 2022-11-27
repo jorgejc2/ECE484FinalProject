@@ -189,6 +189,7 @@ class Stanley(object):
         self.waypoint_y_2 = None
         self.crosstrack_error = None
         self.heading_error = None
+        self.obj_dist = None
 
         # read waypoints into the system           
         self.read_waypoints() 
@@ -211,6 +212,7 @@ class Stanley(object):
         self.waypoint_y_2 = msg.y_2
         self.crosstrack_error = msg.crosstrack_error
         self.heading_error = msg.heading_error
+        self.obj_dist = msg.obj_dist
 
     # Get vehicle speed
     def speed_callback(self, msg):
@@ -462,6 +464,8 @@ class Stanley(object):
                 # ------------------------------------------------------------------------------------------------ 
                 self.accel_cmd.f64_cmd = 0.36
                 self.steer_cmd.angular_position = delta
+
+                print("Front object is {} meters away".format(self.obj_dist))
 
                 self.accel_pub.publish(self.accel_cmd)
                 self.steer_pub.publish(self.steer_cmd)

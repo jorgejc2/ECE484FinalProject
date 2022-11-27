@@ -474,12 +474,12 @@ class lanenet_detector():
             slope_left = None
             slope_right = None
 
-            if left_fit is None or len(left_lane_inds) < 5000:
+            if left_fit is None # or len(left_lane_inds) < 5000:
                 slope_right = 2*right_fit[0]*input_y + right_fit[1]
                 heading_right = np.arctan(-slope_right)
                 lane_theta = heading_right
                 print(f"right fit coefficients: {right_fit}")
-            elif right_fit is None or len(right_lane_inds) < 5000:
+            elif right_fit is None # or len(right_lane_inds) < 5000:
                 slope_left = 2*left_fit[0]*input_y + left_fit[1]
                 heading_left = np.arctan(-slope_left)
                 lane_theta = heading_left

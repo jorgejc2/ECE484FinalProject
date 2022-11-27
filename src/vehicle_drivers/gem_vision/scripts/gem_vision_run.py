@@ -61,6 +61,9 @@ class ImageConverter:
 
         self.wp = rospy.Publisher('waypoint', waypoint , queue_size=1)
 
+        if VISION:
+            self.perceptrion = VehiclePerception()
+
     def image_callback(self, ros_image):
 
         # Use cv_bridge() to convert the ROS image to OpenCV format
@@ -79,9 +82,7 @@ class ImageConverter:
 
             # cv2.imwrite("raw_image.jpg", pub_image)
 
-            perceptron = VehiclePerception()
-
-            mask_image, bird_image, lateral_error, lane_theta = perceptron.lane_detector.detection(pub_image)
+            mask_image, bird_image, lateral_error, lane_theta = self.perceptron.lane_detector.detection(pub_image)
 
             # print(pub_image.shape)
 
@@ -110,6 +111,7 @@ class ImageConverter:
             point.y_2 = 0
             point.crosstrack_error = lateral_error
             point.heading_error = lane_theta
+            point.obj_dist = self.perceptron.lidarReading()
 
             self.wp.publish(point)
 
