@@ -33,8 +33,6 @@ from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from gem_vision.msg import waypoint
 
-VISION = True
-
 
 # GEM PACMod Headers
 from pacmod_msgs.msg import PositionWithSpeed, PacmodCmd, SystemRptFloat, VehicleSpeedRpt
@@ -133,49 +131,6 @@ class Stanley(object):
 
         self.waypoint = rospy.Subscriber('waypoint', waypoint, self.waypoint_callback)
 
-
-        # -------------------- PACMod setup --------------------
-
-        self.enable_sub = rospy.Subscriber("/pacmod/as_tx/enable", Bool, self.enable_callback)
-
-        self.gem_enable    = False
-        self.pacmod_enable = False
-
-        # GEM vehicle enable, publish once
-        self.enable_pub = rospy.Publisher('/pacmod/as_rx/enable', Bool, queue_size=1)
-        self.enable_cmd = Bool()
-        self.enable_cmd.data = False
-
-        # GEM vehicle gear control, neutral, forward and reverse, publish once
-        self.gear_pub = rospy.Publisher('/pacmod/as_rx/shift_cmd', PacmodCmd, queue_size=1)
-        self.gear_cmd = PacmodCmd()
-        self.gear_cmd.ui16_cmd = 2 # SHIFT_NEUTRAL
-
-        # GEM vehilce brake control
-        self.brake_pub = rospy.Publisher('/pacmod/as_rx/brake_cmd', PacmodCmd, queue_size=1)
-        self.brake_cmd = PacmodCmd()
-        self.brake_cmd.enable = False
-        self.brake_cmd.clear  = True
-        self.brake_cmd.ignore = True
-
-        # GEM vechile forward motion control
-        self.accel_pub = rospy.Publisher('/pacmod/as_rx/accel_cmd', PacmodCmd, queue_size=1)
-        self.accel_cmd = PacmodCmd()
-        self.accel_cmd.enable = False
-        self.accel_cmd.clear  = True
-        self.accel_cmd.ignore = True
-
-        # GEM vechile turn signal control
-        self.turn_pub = rospy.Publisher('/pacmod/as_rx/turn_cmd', PacmodCmd, queue_size=1)
-        self.turn_cmd = PacmodCmd()
-        self.turn_cmd.ui16_cmd = 1 # None
-
-        # GEM vechile steering wheel control
-        self.steer_pub = rospy.Publisher('/pacmod/as_rx/steer_cmd', PositionWithSpeed, queue_size=1)
-        self.steer_cmd = PositionWithSpeed()
-        self.steer_cmd.angular_position = 0.0 # radians, -: clockwise, +: counter-clockwise
-        self.steer_cmd.angular_velocity_limit = 2.0 # radians/second
-
         self.ackermann_msg                         = AckermannDrive()
         self.ackermann_msg.steering_angle_velocity = 0.0
         self.ackermann_msg.acceleration            = 0.0
@@ -187,9 +142,6 @@ class Stanley(object):
         self.waypoint_y_1 = None
         self.waypoint_x_2 = None
         self.waypoint_y_2 = None
-        self.crosstrack_error = None
-        self.heading_error = None
-        self.obj_dist = None
 
         # read waypoints into the system           
         self.read_waypoints() 
@@ -210,17 +162,10 @@ class Stanley(object):
         self.waypoint_y_1 = msg.y_1
         self.waypoint_x_2 = msg.x_2
         self.waypoint_y_2 = msg.y_2
-        self.crosstrack_error = msg.crosstrack_error
-        self.heading_error = msg.heading_error
-        self.obj_dist = msg.obj_dist
 
     # Get vehicle speed
     def speed_callback(self, msg):
         self.speed = round(msg.vehicle_speed, 3) # forward velocity in m/s
-    
-    def enable_callback(self, msg):
-        self.pacmod_enable = msg.data
-        print("pacmod enable test")
 
 
     # Get value of steering wheel
@@ -321,154 +266,71 @@ class Stanley(object):
         
         while not rospy.is_shutdown():
 
-            if (self.gem_enable == False):
+            k = 0.4 #coefficient
 
-                if(self.pacmod_enable == True):
-
-                    # ---------- enable PACMod ----------
-
-                    # enable forward gear
-                    self.gear_cmd.ui16_cmd = 3
-
-                    # enable brake
-                    self.brake_cmd.enable  = True
-                    self.brake_cmd.clear   = False
-                    self.brake_cmd.ignore  = False
-                    self.brake_cmd.f64_cmd = 0.0
-
-                    # enable gas 
-                    self.accel_cmd.enable  = True
-                    self.accel_cmd.clear   = False
-                    self.accel_cmd.ignore  = False
-                    # self.accel_cmd.f64_cmd = 0.0
-
-                    self.gear_pub.publish(self.gear_cmd)
-                    print("Foward Engaged!")
-
-                    self.turn_pub.publish(self.turn_cmd)
-                    print("Turn Signal Ready!")
-                    
-                    self.brake_pub.publish(self.brake_cmd)
-                    print("Brake Engaged!")
-
-                    self.accel_pub.publish(self.accel_cmd)
-                    print("Gas Engaged!")
-
-                    self.gem_enable = True
-                    # self.enable_pub.publish(self.enable_cmd)
-
-
-
-            k = 0.4
             # coordinates of rct_errorerence point (center of frontal axle) in global frame
-            filt_vel = np.squeeze(self.speed_filter.get_data(self.speed))
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
             if self.waypoint_x_1 is None:
                 continue
 
-            if VISION:
-                print(self.waypoint_x_1)
-                # print("curr_x", curr_x)
-                # print("curr_y", curr_y)
 
-                # front_x = self.wheelbase*np.cos(curr_yaw) + curr_x
-                # front_y = self.wheelbase*np.sin(curr_yaw) + curr_y
+            print(self.waypoint_x_1)
+            # print("curr_x", curr_x)
+            # print("curr_y", curr_y)
 
-                # --------------------------- Longitudinal control using PD controller ---------------------------
+            # front_x = self.wheelbase*np.cos(curr_yaw) + curr_x
+            # front_y = self.wheelbase*np.sin(curr_yaw) + curr_y
 
-                # filt_vel = np.squeeze(self.speed_filter.get_data(self.speed))
-                a_expected = self.pid_speed.get_control(rospy.get_time(), self.desired_speed - filt_vel)
+            # --------------------------- Longitudinal control using PD controller ---------------------------
 
-                if a_expected > 0.64 :
-                    throttle_percent = 0.5
+            filt_vel = np.squeeze(self.speed_filter.get_data(self.speed))
+            a_expected = self.pid_speed.get_control(rospy.get_time(), self.desired_speed - filt_vel)
 
-                if a_expected < 0.0 :
-                    throttle_percent = 0.0
+            if a_expected > 0.64 :
+                throttle_percent = 0.5
 
-                throttle_percent = (a_expected+2.3501) / 7.3454
+            if a_expected < 0.0 :
+                throttle_percent = 0.0
 
-                if throttle_percent > self.max_accel:
-                    throttle_percent = self.max_accel
+            throttle_percent = (a_expected+2.3501) / 7.3454
 
-                if throttle_percent < 0.3:
-                    throttle_percent = 0.37
+            if throttle_percent > self.max_accel:
+                throttle_percent = self.max_accel
 
-                # -------------------------------------- Stanley controller --------------------------------------
+            if throttle_percent < 0.3:
+                throttle_percent = 0.37
 
-                error_num = ((self.waypoint_x_2 - self.waypoint_x_1) * (self.waypoint_y_1 - curr_y)) - ((self.waypoint_x_1 - curr_x) * (self.waypoint_y_2 - self.waypoint_y_1))
-                error_denom = np.sqrt((self.waypoint_x_2 - self.waypoint_x_1)**2 + (self.waypoint_y_2 - self.waypoint_y_1)**2)
-                error = error_num/error_denom
+            # -------------------------------------- Stanley controller --------------------------------------
 
-                theta = np.arctan2(self.waypoint_y_2 - self.waypoint_y_1, self.waypoint_x_2 - self.waypoint_x_1)
-                heading_error = theta - curr_yaw
-                steering_correction = np.arctan2(filt_vel, k*error)
-                steering = np.round(np.clip(self.pi_2_pi(heading_error + steering_correction), -0.61, 0.61), 3)
-                steering_degrees = np.degrees(steering)
-                steering_angle = self.front2steer(steering_degrees)
+            error_num = ((self.waypoint_x_2 - self.waypoint_x_1) * (self.waypoint_y_1 - curr_y)) - ((self.waypoint_x_1 - curr_x) * (self.waypoint_y_2 - self.waypoint_y_1))
+            error_denom = np.sqrt((self.waypoint_x_2 - self.waypoint_x_1)**2 + (self.waypoint_y_2 - self.waypoint_y_1)**2)
+            error = error_num/error_denom
 
-                print("steering", steering)
-                print("steering angle", steering_angle)
-                print("throttle_percenT ", throttle_percent)
+            theta = np.arctan2(self.waypoint_y_2 - self.waypoint_y_1, self.waypoint_x_2 - self.waypoint_x_1)
+            heading_error = theta - curr_yaw
+            steering_correction = np.arctan2(filt_vel, k*error)
+            steering = np.round(np.clip(self.pi_2_pi(heading_error + steering_correction), -0.61, 0.61), 3)
+            steering_degrees = np.degrees(steering)
+            steering_angle = self.front2steer(steering_degrees)
 
-                # self.accel_cmd.f64_cmd = throttle_percent
-                # self.steer_cmd.angular_position = np.radians(steering_angle)
-                # self.accel_pub.publish(self.accel_cmd)
-                # self.steer_pub.publish(self.steer_cmd)
-                # self.turn_pub.publish(self.turn_cmd)
+            print("steering", steering)
+            print("steering angle", steering_angle)
+            print("throttle_percenT ", throttle_percent)
 
-                self.turn_cmd.ui16_cmd = 2 # turn left
-
-                # self.enable_pub.publish(self.enable_cmd)
-                self.gear_pub.publish(self.gear_cmd)
-                self.brake_pub.publish(self.brake_cmd)
-                self.turn_pub.publish(self.turn_cmd)
-
-                # self.brake_pub.publish(self.brake_cmd)
-
-                if (filt_vel < 0.2):
-                    # self.accel_cmd.f64_cmd = throttle_percent
-                    self.steer_cmd.angular_position  = 0
-                    # print(self.ackermann_msg.steering_angle)
-                else:
-                    # self.accel_cmd.f64_cmd    = throttle_percent
-                    self.steer_cmd.angular_position = round(steering_angle,1)
-                    # print(self.ackermann_msg.steering_angle)
-
-                
-                self.accel_cmd.f64_cmd = 0.36
-
-                self.accel_pub.publish(self.accel_cmd)
-                self.steer_pub.publish(self.steer_cmd)
-
+            if (filt_vel < 0.2):
+                self.ackermann_msg.acceleration   = throttle_percent
+                self.ackermann_msg.steering_angle = 0
+                print(self.ackermann_msg.steering_angle)
             else:
+                self.ackermann_msg.acceleration   = throttle_percent
+                self.ackermann_msg.steering_angle = round(steering_angle,1)
+                print(self.ackermann_msg.steering_angle)
 
-                # when VISION is True
+            # ------------------------------------------------------------------------------------------------ 
 
-                # crosstrack error:
-                ef = self.crosstrack_error
-                # heading error:
-                theta_e = self.heading_error
-
-                # ----------------------------------------------------------------------------------- #
-
-                k = 0.05 # 0.45
-                delta = round(theta_e - math.atan2(k * ef, filt_vel), 3)
-
-                # theta_e  = round(np.degrees(theta_e), 1)
-
-                ef = round(ef,3)
-                # print("theta_p: {}, theta: {}".format(theta_p, theta))
-                print("Crosstrack Error: " + str(ef) + ", Heading Error: " + str(theta_e) + ", Delta: " + str(delta) + "\n")
-
-                # ------------------------------------------------------------------------------------------------ 
-                self.accel_cmd.f64_cmd = 0.36
-                self.steer_cmd.angular_position = delta
-
-                print("Front object is {} meters away".format(self.obj_dist))
-
-                self.accel_pub.publish(self.accel_cmd)
-                self.steer_pub.publish(self.steer_cmd)
+            print(self.ackermann_msg.acceleration, self.ackermann_msg.steering_angle)
+            self.stanley_pub.publish(self.ackermann_msg)
 
             self.rate.sleep()
 
@@ -486,3 +348,5 @@ def stanley_run():
 
 if __name__ == '__main__':
     stanley_run()
+
+

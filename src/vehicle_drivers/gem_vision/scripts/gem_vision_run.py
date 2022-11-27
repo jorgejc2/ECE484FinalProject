@@ -30,17 +30,9 @@ from rospy.numpy_msg import numpy_msg
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import Image, CameraInfo
 from cv_bridge import CvBridge, CvBridgeError
-# from lane_detector import lanenet_detector
-# from perception import lanenet_detector, VehiclePerception
+from lane_detector import lanenet_detector
 from line_fit import line_fit
 from gem_vision.msg import waypoint
-
-VISION = True  # false if running waypoints, true if using vision
-
-if VISION:
-    from perception import lanenet_detector, VehiclePerception
-else:
-    from lane_detector import lanenet_detector
 
 
 class ImageConverter:
@@ -61,9 +53,6 @@ class ImageConverter:
 
         self.wp = rospy.Publisher('waypoint', waypoint , queue_size=1)
 
-        if VISION:
-            self.perceptrion = VehiclePerception()
-
     def image_callback(self, ros_image):
 
         # Use cv_bridge() to convert the ROS image to OpenCV format
@@ -76,98 +65,44 @@ class ImageConverter:
 
         pub_image = np.copy(frame)
 
-        if VISION:
-            print("VISION is True")
-                    # visualize(pub_image)
+        # print(pub_image.shape)
 
-            # cv2.imwrite("raw_image.jpg", pub_image)
-
-            mask_image, bird_image, lateral_error, lane_theta = self.perceptron.lane_detector.detection(pub_image)
-
-            # print(pub_image.shape)
-
-            # test = lanenet_detector()
-            # combined = test.combinedBinaryImage(pub_image)
+        test = lanenet_detector()
+        combined = test.combinedBinaryImage(pub_image)
+        # print(combined.shape)
 
 
-            # output, x, y = test.perspective_transform(np.float32(combined))
+        output, x, y = test.perspective_transform(np.float32(combined))
 
-            # line_fit_dict = line_fit(output)
+        line_fit_dict = line_fit(output)
+
+        """publish the perspective transform"""
+        # self.image_pub.publish(output)
+        point = waypoint()
+        point.x_1 = line_fit_dict['waypoint_x_1'] 
+        point.y_1 = line_fit_dict['waypoint_y_1'] 
+        point.x_2 = line_fit_dict['waypoint_x_2']
+        point.y_2 = line_fit_dict['waypoint_y_2']
+
+        output = line_fit_dict['out_img']
+
+        print("x1: ", point.x_1)
+        print("y1: ", point.y_1)
+
+        print("x2: ", point.x_2)
+        print("y2: ", point.y_2)
 
 
-
-            """publish the perspective transform"""
-            # self.image_pub.publish(output)
-            point = waypoint()
-            # point.x = line_fit_dict['waypoint_x'] 
-            # point.y = line_fit_dict['waypoint_y']
-            # point.heading = line_fit_dict['waypoint_heading']
-            # print(point.x, point.y, point.heading)
-
-
-            point.x_1 = 0
-            point.y_1 = 0
-            point.x_2 = 0
-            point.y_2 = 0
-            point.crosstrack_error = lateral_error
-            point.heading_error = lane_theta
-            point.obj_dist = self.perceptron.lidarReading()
-
-            self.wp.publish(point)
+        self.wp.publish(point)
 
         # ----------------------------------------------------------------------
 
-            try:
-                # Convert OpenCV image to ROS image and publish
-                # self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
-                self.pub_image.publish(self.bridge.cv2_to_imgmsg(mask_image, 'bgr8'))
-                self.pub_bird.publish(self.bridge.cv2_to_imgmsg(bird_image, 'bgr8'))
-                # self.image_pub.publish(self.bridge.cv2_to_imgmsg(np.float32(output), encoding='passthrough'))
-            except CvBridgeError as e:
-                rospy.logerr("CvBridge Error: {0}".format(e))
-        
-        else: 
-
-            # print(pub_image.shape)
-
-            test = lanenet_detector()
-            combined = test.combinedBinaryImage(pub_image)
-            # print(combined.shape)
-
-
-            output, x, y = test.perspective_transform(np.float32(combined))
-
-            line_fit_dict = line_fit(output)
-
-            """publish the perspective transform"""
-            # self.image_pub.publish(output)
-            point = waypoint()
-            point.x_1 = line_fit_dict['waypoint_x_1'] 
-            point.y_1 = line_fit_dict['waypoint_y_1'] 
-            point.x_2 = line_fit_dict['waypoint_x_2']
-            point.y_2 = line_fit_dict['waypoint_y_2']
-            point.crosstrack_error = 0
-            point.heading_error = 0
-
-            output = line_fit_dict['out_img']
-
-            print("x1: ", point.x_1)
-            print("y1: ", point.y_1)
-
-            print("x2: ", point.x_2)
-            print("y2: ", point.y_2)
-
-
-            self.wp.publish(point)
-
-            # ----------------------------------------------------------------------
-
-            try:
-                # Convert OpenCV image to ROS image and publish
-                # self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
-                self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, encoding='passthrough'))
-            except CvBridgeError as e:
-                rospy.logerr("CvBridge Error: {0}".format(e))
+        try:
+            # Convert OpenCV image to ROS image and publish
+            # self.image_pub.publish(self.bridge.cv2_to_imgmsg(pub_image, "bgr8"))
+            self.image_pub.publish(self.bridge.cv2_to_imgmsg(output, encoding='passthrough'))
+        except CvBridgeError as e:
+            rospy.logerr("CvBridge Error: {0}".format(e))
 
 
     def cleanup(self):

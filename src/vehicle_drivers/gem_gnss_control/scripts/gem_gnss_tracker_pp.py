@@ -23,15 +23,8 @@ from numpy import linalg as la
 import scipy.signal as signal
 
 # ROS Headers
+import alvinxy.alvinxy as axy # Import AlvinXY transformation module
 import rospy
-import alvinxy.alvinxy as axy 
-from ackermann_msgs.msg import AckermannDrive
-from std_msgs.msg import String, Bool, Float32, Float64
-from novatel_gps_msgs.msg import NovatelPosition, NovatelXYZ, Inspva
-from tf.transformations import euler_from_quaternion, quaternion_from_euler
-from rospy_tutorials.msg import Floats
-from rospy.numpy_msg import numpy_msg
-from gem_vision.msg import waypoint
 
 # GEM Sensor Headers
 from std_msgs.msg import String, Bool, Float32, Float64
@@ -112,7 +105,7 @@ class PurePursuit(object):
 
         self.look_ahead = 4
         self.wheelbase  = 1.75 # meters
-        self.offset     = 0.50 # meters originally 0.46 from GNSS
+        self.offset     = 0.46 # meters
 
         self.gnss_sub   = rospy.Subscriber("/novatel/inspva", Inspva, self.inspva_callback)
         self.lat        = 0.0
@@ -120,8 +113,6 @@ class PurePursuit(object):
         self.heading    = 0.0
 
         self.enable_sub = rospy.Subscriber("/pacmod/as_tx/enable", Bool, self.enable_callback)
-
-        self.waypoint = rospy.Subscriber('waypoint', waypoint, self.waypoint_callback)
 
         self.speed_sub  = rospy.Subscriber("/pacmod/parsed_tx/vehicle_speed_rpt", VehicleSpeedRpt, self.speed_callback)
         self.speed      = 0.0
@@ -186,12 +177,6 @@ class PurePursuit(object):
 
     def speed_callback(self, msg):
         self.speed = round(msg.vehicle_speed, 3) # forward velocity in m/s
-
-    def waypoint_callback(self, msg):
-        self.waypoint_x_1 = msg.x_1
-        self.waypoint_y_1 = msg.y_1
-        self.waypoint_x_2 = msg.x_2
-        self.waypoint_y_2 = msg.y_2
 
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
@@ -302,18 +287,35 @@ class PurePursuit(object):
 
                     self.gem_enable = True
 
+
+            self.path_points_x = np.array(self.path_points_lon_x)
+            self.path_points_y = np.array(self.path_points_lat_y)
+
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
-            
-            # calculate x and y distance from waypoint to center of rear axel
-            rear_axel_offsetted_x = x_2 + self.offset * np.abs(np.cos(curr_yaw * (np.pi/180)))
-            rear_axel_offsetted_y = y_2 + self.offset * np.abd(np.sin(curr_yaw * (np.pi/180)))
+            # finding the distance of each way point from the current position
+            for i in range(len(self.path_points_x)):
+                self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
 
-            # calculate euclidian distance of vehicle to waypoint
-            L = np.sqrt((rear_axel_offsetted_y ** 2) + (rear_axel_offsetted_x ** 2))
+            # finding those points which are less than the look ahead distance (will be behind and ahead of the vehicle)
+            goal_arr = np.where( (self.dist_arr < self.look_ahead + 0.3) & (self.dist_arr > self.look_ahead - 0.3) )[0]
 
-            # find angle from waypoint to rear axel
-            alpha = np.arctan2(rear_axel_offsetted_y, rear_axel_offsetted_x)
+            # finding the goal point which is the last in the set of points less than the lookahead distance
+            for idx in goal_arr:
+                v1 = [self.path_points_x[idx]-curr_x , self.path_points_y[idx]-curr_y]
+                v2 = [np.cos(curr_yaw), np.sin(curr_yaw)]
+                temp_angle = self.find_angle(v1,v2)
+                # find correct look-ahead point by using heading information
+                if abs(temp_angle) < np.pi/2:
+                    self.goal = idx
+                    break
+
+            # finding the distance between the goal point and the vehicle
+            # true look-ahead distance between a waypoint and current position
+            L = self.dist_arr[self.goal]
+
+            # find the curvature and the angle 
+            alpha = self.heading_to_yaw(self.path_points_heading[self.goal]) - curr_yaw
 
             # ----------------- tuning this part as needed -----------------
             k       = 0.41 
