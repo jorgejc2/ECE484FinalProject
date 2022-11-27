@@ -308,7 +308,7 @@ class PurePursuit(object):
 
             # calculate x and y distance from waypoint to center of rear axel
             rear_axel_offsetted_x = x_2 + self.offset * np.abs(np.cos(curr_yaw * (np.pi/180)))
-            rear_axel_offsetted_y = y_2 + self.offset * np.abd(np.sin(curr_yaw * (np.pi/180)))
+            rear_axel_offsetted_y = y_2 + self.offset * np.abs(np.sin(curr_yaw * (np.pi/180)))
 
             print("rear_axel_offsetted_x : ", rear_axel_offsetted_x)
             print("rear_axel_offsetted_y : ", rear_axel_offsetted_y)
