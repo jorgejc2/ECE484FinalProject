@@ -200,6 +200,7 @@ class Stanley(object):
         self.lat     = inspva_msg.latitude  # latitude
         self.lon     = inspva_msg.longitude # longitude
         self.heading = inspva_msg.azimuth   # heading in degrees
+        print("yaw test")
 
     def waypoint_callback(self, msg):
         self.waypoint_x_1 = msg.x_1

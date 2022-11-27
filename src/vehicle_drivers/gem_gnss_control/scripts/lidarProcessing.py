@@ -21,6 +21,7 @@ class LidarProcessing:
         self.fwd_range = fwd_range
         self.height_range = height_range
         self.sensor_limit = (abs(fwd_range[0]) + abs(fwd_range[1]) + abs(side_range[0]) + abs(side_range[1]))/4
+        self.sensor_limit = 15
 
         self.cvBridge = CvBridge()
 
@@ -28,7 +29,7 @@ class LidarProcessing:
         self.__birds_eye_view =  np.zeros((200, 100))
 
         self.birdsEyeViewPub = rospy.Publisher("/mp3/BirdsEye", Image, queue_size=1)
-        self.pointCloudSub = rospy.Subscriber("/velodyne_points", PointCloud2, self.__pointCloudHandler, queue_size=10)
+        self.pointCloudSub = rospy.Subscriber("/lidar1/velodyne_points", PointCloud2, self.__pointCloudHandler, queue_size=10)
         x_img = np.floor(-0 / self.resolution).astype(np.int32)
         self.vehicle_x = x_img - int(np.floor(self.side_range[0] / self.resolution))
 
@@ -154,7 +155,7 @@ class LidarProcessing:
         self.y_rear = np.mean(y_points[indices])
 
         # Getting sensor reading for front       
-        filter_front = np.logical_and((y_points>-0.1), (y_points<0.1))
+        filter_front = np.logical_and((y_points>-1.5), (y_points<1.5))
         filter_front = np.logical_and(filter_front, x_points > 0)
         filter_front = np.logical_and(filter_front, pixel_vals > 128)
         indices = np.argwhere(filter_front).flatten()
@@ -162,7 +163,7 @@ class LidarProcessing:
         self.x_front = np.mean(x_points[indices])
         self.y_front = np.mean(y_points[indices])
         
-        ## TODO: Add 4 additional sensor directions #####
+        # TODO: Add 4 additional sensor directions #####
         # Handle sensor at 4 diagnal direction
         # Getting sensor reading for front left
         filter_front_left = np.logical_and(y_points - x_points < 0.1, y_points - x_points > -0.1)
@@ -265,6 +266,8 @@ class LidarProcessing:
         if not np.isnan(self.x_rear_right) and not np.isnan(self.y_rear_right):
             cv2.arrowedLine(img, (self.vehicle_x,self.vehicle_y), center, (255,0,0))
         birds_eye_im = self.cvBridge.cv2_to_imgmsg(img, 'bgr8')
+        # cv2.imshow("test", birds_eye_im)
+        # cv2.waitkey(0)
 
         self.birdsEyeViewPub.publish(birds_eye_im)
 
@@ -312,7 +315,10 @@ class LidarProcessing:
         if np.isnan(rear_right):
             rear_right = self.sensor_limit
 
-        return [front*100, right*100, rear*100, left*100]
+        print("self.sensor_limit ", self.sensor_limit)
+
+        # return [front*100, right*100, rear*100, left*100]
+        return [front]
         # return [front*100, right*100, rear*100, left*100, front_left*100, front_right*100, rear_left*100, rear_right*100]
 
 

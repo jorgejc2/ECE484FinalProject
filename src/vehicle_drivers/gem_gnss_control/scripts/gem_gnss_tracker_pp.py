@@ -32,6 +32,8 @@ from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from rospy_tutorials.msg import Floats
 from rospy.numpy_msg import numpy_msg
 from gem_vision.msg import waypoint
+from lidarProcessing import LidarProcessing
+
 
 # GEM Sensor Headers
 from std_msgs.msg import String, Bool, Float32, Float64
@@ -179,10 +181,20 @@ class PurePursuit(object):
         self.steer_cmd.angular_velocity_limit = 2.0 # radians/second
 
 
+        self.waypoint_x_1 = None
+        self.waypoint_y_1 = None
+        self.waypoint_x_2 = None
+        self.waypoint_y_2 = None
+
+        # lidar
+        self.lidar_reading = LidarProcessing()
+
+
     def inspva_callback(self, inspva_msg):
         self.lat     = inspva_msg.latitude  # latitude
         self.lon     = inspva_msg.longitude # longitude
         self.heading = inspva_msg.azimuth   # heading in degrees
+        print('yaw test')
 
     def speed_callback(self, msg):
         self.speed = round(msg.vehicle_speed, 3) # forward velocity in m/s
@@ -304,11 +316,21 @@ class PurePursuit(object):
 
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
+            if self.waypoint_x_2 is None:
+                continue
+
+            # lidar readings
+            
+            lidar_reading_value = self.lidar_reading.processLidar()
+            safe_breaking_distance = 10    # distance in metres
+            print("lidar_reading: ", lidar_reading_value)
+
             print("Curr_yaw: ", curr_yaw)
 
+
             # calculate x and y distance from waypoint to center of rear axel
-            rear_axel_offsetted_x = x_2 + self.offset * np.abs(np.cos(curr_yaw * (np.pi/180)))
-            rear_axel_offsetted_y = y_2 + self.offset * np.abs(np.sin(curr_yaw * (np.pi/180)))
+            rear_axel_offsetted_x = self.waypoint_x_2 #+ self.offset * np.abs(np.cos(curr_yaw * (np.pi/180)))
+            rear_axel_offsetted_y = self.waypoint_y_2 + self.offset #* np.abs(np.sin(curr_yaw * (np.pi/180)))
 
             print("rear_axel_offsetted_x : ", rear_axel_offsetted_x)
             print("rear_axel_offsetted_y : ", rear_axel_offsetted_y)
@@ -317,7 +339,7 @@ class PurePursuit(object):
             L = np.sqrt((rear_axel_offsetted_y ** 2) + (rear_axel_offsetted_x ** 2))
 
             # find angle from waypoint to rear axel
-            alpha = np.arctan2(rear_axel_offsetted_y, rear_axel_offsetted_x)
+            alpha = np.arctan2(rear_axel_offsetted_x, rear_axel_offsetted_y)
 
             print("alpha: ", alpha)
 
@@ -327,7 +349,7 @@ class PurePursuit(object):
             # ----------------- tuning this part as needed -----------------
             k       = 0.41 # k value might need to be closer to 1 since goal speed is 1.5 m/s
             angle_i = math.atan((k * 2 * self.wheelbase * math.sin(alpha)) / L) # maybe change this to not have k or k close to 1
-            angle   = angle_i*2
+            angle   = angle_i
             # ----------------- tuning this part as needed -----------------
 
             f_delta = round(np.clip(angle, -0.61, 0.61), 3)
@@ -363,11 +385,22 @@ class PurePursuit(object):
             else:
                 self.turn_cmd.ui16_cmd = 0 # turn right
 
+            # lidar pedestrian detection stopping
+            # if (lidar_reading_value[0] <= safe_breaking_distance):
+            #     self.accel_cmd.f64_cmd = 0.0
+            #     self.brake_cmd.f64_cmd = 0.3
+            # else:
+            #     self.accel_cmd.f64_cmd = output_accel
+            #     self.brake_cmd.f64_cmd = 0.0
+
             self.accel_cmd.f64_cmd = output_accel
+            self.brake_cmd.f64_cmd = 0.0
             self.steer_cmd.angular_position = np.radians(steering_angle)
             self.accel_pub.publish(self.accel_cmd)
             self.steer_pub.publish(self.steer_cmd)
             self.turn_pub.publish(self.turn_cmd)
+            self.brake_pub.publish(self.brake_cmd)
+
 
             self.rate.sleep()
 

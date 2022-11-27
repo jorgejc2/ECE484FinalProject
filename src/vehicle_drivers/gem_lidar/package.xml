@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>gem_LIDAR</name>
+  <name>gem_lidar</name>
   <version>0.0.0</version>
-  <description>The gem_LIDAR package</description>
+  <description>The gem_lidar package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
