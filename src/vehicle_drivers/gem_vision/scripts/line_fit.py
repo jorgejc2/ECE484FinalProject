@@ -114,14 +114,19 @@ def line_fit(binary_warped):
 	# the second order polynomial is unable to be sovled.
 	# Thus, it is unable to detect edges.
 	try:
-	##TODO
 		# calculate polyfit line for both left and right lanes
 		left_fit = np.polyfit(lefty, leftx, 2)
+	####
+	except TypeError:
+		left_fit = None
+
+	try:
+		# calculate polyfit line for both left and right lanes
 		right_fit = np.polyfit(righty, rightx, 2)
 	####
 	except TypeError:
-		print("Unable to detect lanes")
-		return None
+		right_fit = None
+
 
 	x_centers = []
 	for i in range(len(left_centroids)):
@@ -139,11 +144,30 @@ def line_fit(binary_warped):
 	# slope = (2*left_fit[0]*lefty[-1]) + left_fit[1]
 
 
-	x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + leftx[-1])/2)) * meter_per_pixel
-	y_2 = (binary_warped.shape[0]- ((righty[-1] + lefty[-1])/2)) * meter_per_pixel
+	if left_fit is None and right_fit is None:
+		print("Unable to detect lanes")
+		return None
 
-	x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + leftx[0])/2)) * meter_per_pixel
-	y_1 = (binary_warped.shape[0]- ((righty[0] + lefty[0])/2)) * meter_per_pixel
+	if left_fit is None:
+		x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + (rightx[-1] - lane_width_pixels))/2)) * meter_per_pixel
+		y_2 = (binary_warped.shape[0]- ((righty[-1] + righty[-1])/2)) * meter_per_pixel
+
+		x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + (rightx[0] - lane_width_pixels))/2)) * meter_per_pixel
+		y_1 = (binary_warped.shape[0]- ((righty[0] + righty[0])/2)) * meter_per_pixel
+	elif right_fit is None:
+		x_2 = (binary_warped.shape[1]/2 - ((leftx[-1] + lane_width_pixels + leftx[-1])/2)) * meter_per_pixel
+		y_2 = (binary_warped.shape[0]- ((lefty[-1] + lefty[-1])/2)) * meter_per_pixel
+
+		x_1 = (binary_warped.shape[1]/2 - ((leftx[0] + lane_width_pixels + leftx[0])/2)) * meter_per_pixel
+		y_1 = (binary_warped.shape[0]- ((lefty[0] + lefty[0])/2)) * meter_per_pixel
+	else:
+		x_2 = (binary_warped.shape[1]/2 - ((rightx[-1] + leftx[-1])/2)) * meter_per_pixel
+		y_2 = (binary_warped.shape[0]- ((righty[-1] + lefty[-1])/2)) * meter_per_pixel
+
+		x_1 = (binary_warped.shape[1]/2 - ((rightx[0] + leftx[0])/2)) * meter_per_pixel
+		y_1 = (binary_warped.shape[0]- ((righty[0] + lefty[0])/2)) * meter_per_pixel
+
+
 
 	cv2.imwrite("test_img.png", out_img)
 
