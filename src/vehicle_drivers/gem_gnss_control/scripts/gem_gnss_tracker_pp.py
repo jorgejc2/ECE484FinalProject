@@ -21,6 +21,7 @@ import math
 import numpy as np
 from numpy import linalg as la
 import scipy.signal as signal
+import json
 
 # ROS Headers
 import rospy
@@ -55,6 +56,19 @@ class PID(object):
         self.kd     = kd
         self.wg     = wg
         self.derror = 0
+
+        # data for post processing
+        self.post_gnss_lat = []
+        self.post_gnss_long = []
+        self.post_gnss_heading = []
+        self.post_published_acceleration = []
+        self.post_published_heading = []
+        self.post_pacmod_velocity = []
+        self.post_velodyne_lidar = []
+        self.post_waypoint_x_1 = []
+        self.post_waypoint_y_1 = []
+        self.post_waypoint_x_2 = []
+        self.post_waypoint_y_2 = []
 
     def reset(self):
         self.iterm  = 0
@@ -404,8 +418,53 @@ class PurePursuit(object):
             self.turn_pub.publish(self.turn_cmd)
             self.brake_pub.publish(self.brake_cmd)
 
+            # collecting data points for csv file 
+            if self.gem_enable == True:
+                # car is actually running
+                self.post_gnss_lat.append(self.lat)
+                self.post_gnss_long.append(self.lon)
+                self.post_gnss_heading.append(self.heading)
+                self.post_published_acceleration.append(self.accel_cmd)
+                self.post_published_heading.append(self.steer_cmd)
+                self.post_pacmod_velocity.append(self.speed)
+                self.post_velodyne_lidar.append()
+                self.post_waypoint_x_1.append(self.waypoint_x_1)
+                self.post_waypoint_y_1.append(self.waypoint_y_1)
+                self.post_waypoint_x_2.append(self.waypoint_x_2)
+                self.post_waypoint_y_2.append(self.waypoint_y_2)
+
 
             self.rate.sleep()
+
+        # take data and create json file
+        json_data = {
+            "gnss_lat" : self.post_gnss_lat,
+            "gnss_long" : self.post_gnss_long,
+            "gnss_heading" : self.post_gnss_heading,
+            "published_acceleration" : self.post_published_acceleration,
+            "published_heading" : self.post_published_heading,
+            "pacmod_velocity" : self.post_pacmod_velocity,
+            "velodyne_lidar" : self.post_velodyne_lidar,
+            "x_1" : self.post_waypoint_x_1,
+            "x_2" : self.post_waypoint_x_2,
+            "y_1" : self.post_waypoint_y_1,
+            "y_2" : self.post_waypoint_y_2
+        }
+        # get list of directories
+        curr_dir = os.getcwd()
+        dir_list = os.listdir(curr_dir)
+        largest_num = None
+        # find the largest number in a file name
+        for file in dir_list:
+            file_num = [x for x in file if x.isdigit()]
+            file_num = int("".join(file_num))
+            if largest_num is None or (file_num != "" and file_num > largest_num):
+                largest_num = file_num
+        # write the results to a new file
+        largest_num = 0 if largest_num is None else largest_num + 1
+        result_file = "result_" + str(largest_num) + ".json"
+        with open(result_file, "w") as outfile:
+            json.dump(json_data, outfile, indent=4)
 
 
 def pure_pursuit():
