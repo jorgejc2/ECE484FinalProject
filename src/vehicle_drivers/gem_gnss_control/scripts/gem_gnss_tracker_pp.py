@@ -57,18 +57,6 @@ class PID(object):
         self.wg     = wg
         self.derror = 0
 
-        # data for post processing
-        self.post_gnss_lat = []
-        self.post_gnss_long = []
-        self.post_gnss_heading = []
-        self.post_published_acceleration = []
-        self.post_published_heading = []
-        self.post_pacmod_velocity = []
-        self.post_velodyne_lidar = []
-        self.post_waypoint_x_1 = []
-        self.post_waypoint_y_1 = []
-        self.post_waypoint_x_2 = []
-        self.post_waypoint_y_2 = []
 
     def reset(self):
         self.iterm  = 0
@@ -149,7 +137,7 @@ class PurePursuit(object):
         self.goal       = 0            
         self.read_waypoints() 
 
-        self.desired_speed = 1.25  # m/s, reference speed
+        self.desired_speed = 1.00 # m/s, reference speed
         self.max_accel     = 0.48 # % of acceleration
         self.pid_speed     = PID(0.5, 0.0, 0.1, wg=20)
         self.speed_filter  = OnlineFilter(1.2, 30, 4)
@@ -202,6 +190,19 @@ class PurePursuit(object):
 
         # lidar
         self.lidar_reading = LidarProcessing()
+
+        # data for post processing
+        self.post_gnss_lat = []
+        self.post_gnss_long = []
+        self.post_gnss_heading = []
+        self.post_published_acceleration = []
+        self.post_published_heading = []
+        self.post_pacmod_velocity = []
+        self.post_velodyne_lidar = []
+        self.post_waypoint_x_1 = []
+        self.post_waypoint_y_1 = []
+        self.post_waypoint_x_2 = []
+        self.post_waypoint_y_2 = []
 
 
     def inspva_callback(self, inspva_msg):
@@ -336,7 +337,7 @@ class PurePursuit(object):
             # lidar readings
             
             lidar_reading_value = self.lidar_reading.processLidar()
-            safe_breaking_distance = 12  # distance in metres
+            safe_breaking_distance = 11  # distance in metres
             print("lidar_reading: ", lidar_reading_value)
             curr_yaw += 90
             print("Curr_yaw: ", curr_yaw)
@@ -363,7 +364,7 @@ class PurePursuit(object):
             # ----------------- tuning this part as needed -----------------
             k       = 0.8 # k value might need to be closer to 1 since goal speed is 1.5 m/s
             angle_i = math.atan((k * 2 * self.wheelbase * math.sin(alpha)) / L) # maybe change this to not have k or k close to 1
-            angle   = angle_i*1.2
+            angle  = angle_i *1.2
             # ----------------- tuning this part as needed -----------------
 
             f_delta = round(np.clip(angle, -0.61, 0.61), 3)
@@ -405,7 +406,7 @@ class PurePursuit(object):
             # lidar pedestrian detection stopping
             if (lidar_reading_value[0] <= safe_breaking_distance):
                 self.accel_cmd.f64_cmd = 0.0
-                self.brake_cmd.f64_cmd = 0.3
+                self.brake_cmd.f64_cmd = 0.35
             else:
                 self.accel_cmd.f64_cmd = output_accel
                 self.brake_cmd.f64_cmd = 0.0
@@ -419,37 +420,41 @@ class PurePursuit(object):
             self.brake_pub.publish(self.brake_cmd)
 
             # collecting data points for csv file 
-            if self.gem_enable == True:
-                # car is actually running
-                self.post_gnss_lat.append(self.lat)
-                self.post_gnss_long.append(self.lon)
-                self.post_gnss_heading.append(self.heading)
-                self.post_published_acceleration.append(self.accel_cmd)
-                self.post_published_heading.append(self.steer_cmd)
-                self.post_pacmod_velocity.append(self.speed)
-                self.post_velodyne_lidar.append()
-                self.post_waypoint_x_1.append(self.waypoint_x_1)
-                self.post_waypoint_y_1.append(self.waypoint_y_1)
-                self.post_waypoint_x_2.append(self.waypoint_x_2)
-                self.post_waypoint_y_2.append(self.waypoint_y_2)
+            # if self.gem_enable == True:
+            # car is actually running
+            # self.post_gnss_lat.append(self.lat)
+            # self.post_gnss_long.append(self.lon)
+            # self.post_gnss_heading.append(self.heading)
+            # self.post_published_acceleration.append(list(output_accel))
+            self.post_published_heading.append(steering_angle)
+            self.post_pacmod_velocity.append(list(filt_vel))
+            self.post_velodyne_lidar.append(lidar_reading_value[0])
+            self.post_waypoint_x_1.append(self.waypoint_x_1)
+            self.post_waypoint_y_1.append(self.waypoint_y_1)
+            self.post_waypoint_x_2.append(self.waypoint_x_2)
+            self.post_waypoint_y_2.append(self.waypoint_y_2)
 
 
             self.rate.sleep()
 
         # take data and create json file
+
         json_data = {
-            "gnss_lat" : self.post_gnss_lat,
-            "gnss_long" : self.post_gnss_long,
-            "gnss_heading" : self.post_gnss_heading,
-            "published_acceleration" : self.post_published_acceleration,
+            # "gnss_lat" : self.post_gnss_lat,
+            # "gnss_long" : self.post_gnss_long,
+            # "gnss_heading" : list(self.post_gnss_heading),
+            # "published_acceleration" : list(self.post_published_acceleration),
             "published_heading" : self.post_published_heading,
-            "pacmod_velocity" : self.post_pacmod_velocity,
+            "pacmod_velocity" : list(self.post_pacmod_velocity),
             "velodyne_lidar" : self.post_velodyne_lidar,
-            "x_1" : self.post_waypoint_x_1,
+            "x_1" : self.post_waypoint_x_1  ,
             "x_2" : self.post_waypoint_x_2,
             "y_1" : self.post_waypoint_y_1,
             "y_2" : self.post_waypoint_y_2
         }
+        # print(json_data)
+        # obj = json.dump(json_data, indent=4)
+        # print(obj)
         # get list of directories
         curr_dir = os.getcwd()
         dir_list = os.listdir(curr_dir)
@@ -457,14 +462,21 @@ class PurePursuit(object):
         # find the largest number in a file name
         for file in dir_list:
             file_num = [x for x in file if x.isdigit()]
-            file_num = int("".join(file_num))
-            if largest_num is None or (file_num != "" and file_num > largest_num):
+            if file_num != []:
+                file_num = int("".join(file_num))
+            else:
+                file_num = ""
+            if (largest_num is None and file_num != "") or (file_num != "" and file_num > largest_num):
                 largest_num = file_num
         # write the results to a new file
         largest_num = 0 if largest_num is None else largest_num + 1
         result_file = "result_" + str(largest_num) + ".json"
-        with open(result_file, "w") as outfile:
-            json.dump(json_data, outfile, indent=4)
+
+        f = open(result_file, "w")
+        json.dump(json_data, f, indent=4)
+
+        # with open(result_file, "w") as outfile:
+        #     json.dump(json_data, outfile, indent=4)
 
 
 def pure_pursuit():
