@@ -23,8 +23,17 @@ from numpy import linalg as la
 import scipy.signal as signal
 
 # ROS Headers
-import alvinxy.alvinxy as axy # Import AlvinXY transformation module
 import rospy
+import alvinxy.alvinxy as axy 
+from ackermann_msgs.msg import AckermannDrive
+from std_msgs.msg import String, Bool, Float32, Float64
+from novatel_gps_msgs.msg import NovatelPosition, NovatelXYZ, Inspva
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
+from rospy_tutorials.msg import Floats
+from rospy.numpy_msg import numpy_msg
+from gem_vision.msg import waypoint
+from lidarProcessing import LidarProcessing
+
 
 # GEM Sensor Headers
 from std_msgs.msg import String, Bool, Float32, Float64
@@ -105,7 +114,7 @@ class PurePursuit(object):
 
         self.look_ahead = 4
         self.wheelbase  = 1.75 # meters
-        self.offset     = 0.46 # meters
+        self.offset     = 0.50 # meters originally 0.46 from GNSS
 
         self.gnss_sub   = rospy.Subscriber("/novatel/inspva", Inspva, self.inspva_callback)
         self.lat        = 0.0
@@ -113,6 +122,8 @@ class PurePursuit(object):
         self.heading    = 0.0
 
         self.enable_sub = rospy.Subscriber("/pacmod/as_tx/enable", Bool, self.enable_callback)
+
+        self.waypoint = rospy.Subscriber('waypoint', waypoint, self.waypoint_callback)
 
         self.speed_sub  = rospy.Subscriber("/pacmod/parsed_tx/vehicle_speed_rpt", VehicleSpeedRpt, self.speed_callback)
         self.speed      = 0.0
@@ -124,7 +135,7 @@ class PurePursuit(object):
         self.goal       = 0            
         self.read_waypoints() 
 
-        self.desired_speed = 1.5  # m/s, reference speed
+        self.desired_speed = 1.25  # m/s, reference speed
         self.max_accel     = 0.48 # % of acceleration
         self.pid_speed     = PID(0.5, 0.0, 0.1, wg=20)
         self.speed_filter  = OnlineFilter(1.2, 30, 4)
@@ -170,13 +181,29 @@ class PurePursuit(object):
         self.steer_cmd.angular_velocity_limit = 2.0 # radians/second
 
 
+        self.waypoint_x_1 = None
+        self.waypoint_y_1 = None
+        self.waypoint_x_2 = None
+        self.waypoint_y_2 = None
+
+        # lidar
+        self.lidar_reading = LidarProcessing()
+
+
     def inspva_callback(self, inspva_msg):
         self.lat     = inspva_msg.latitude  # latitude
         self.lon     = inspva_msg.longitude # longitude
         self.heading = inspva_msg.azimuth   # heading in degrees
+        # print('yaw test')
 
     def speed_callback(self, msg):
         self.speed = round(msg.vehicle_speed, 3) # forward velocity in m/s
+
+    def waypoint_callback(self, msg):
+        self.waypoint_x_1 = msg.x_1
+        self.waypoint_y_1 = msg.y_1
+        self.waypoint_x_2 = msg.x_2
+        self.waypoint_y_2 = msg.y_2
 
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
@@ -287,57 +314,61 @@ class PurePursuit(object):
 
                     self.gem_enable = True
 
-
-            self.path_points_x = np.array(self.path_points_lon_x)
-            self.path_points_y = np.array(self.path_points_lat_y)
-
             curr_x, curr_y, curr_yaw = self.get_gem_state()
 
-            # finding the distance of each way point from the current position
-            for i in range(len(self.path_points_x)):
-                self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
+            if self.waypoint_x_2 is None:
+                continue
 
-            # finding those points which are less than the look ahead distance (will be behind and ahead of the vehicle)
-            goal_arr = np.where( (self.dist_arr < self.look_ahead + 0.3) & (self.dist_arr > self.look_ahead - 0.3) )[0]
+            # lidar readings
+            
+            lidar_reading_value = self.lidar_reading.processLidar()
+            safe_breaking_distance = 12  # distance in metres
+            print("lidar_reading: ", lidar_reading_value)
+            curr_yaw += 90
+            print("Curr_yaw: ", curr_yaw)
 
-            # finding the goal point which is the last in the set of points less than the lookahead distance
-            for idx in goal_arr:
-                v1 = [self.path_points_x[idx]-curr_x , self.path_points_y[idx]-curr_y]
-                v2 = [np.cos(curr_yaw), np.sin(curr_yaw)]
-                temp_angle = self.find_angle(v1,v2)
-                # find correct look-ahead point by using heading information
-                if abs(temp_angle) < np.pi/2:
-                    self.goal = idx
-                    break
 
-            # finding the distance between the goal point and the vehicle
-            # true look-ahead distance between a waypoint and current position
-            L = self.dist_arr[self.goal]
+            # calculate x and y distance from waypoint to center of rear axel
+            rear_axel_offsetted_x = self.waypoint_x_2 + self.offset * np.abs(np.cos(curr_yaw * (np.pi/180)))
+            rear_axel_offsetted_y = self.waypoint_y_2 + self.offset * np.abs(np.sin(curr_yaw * (np.pi/180)))
 
-            # find the curvature and the angle 
-            alpha = self.heading_to_yaw(self.path_points_heading[self.goal]) - curr_yaw
+            # print("rear_axel_offsetted_x : ", rear_axel_offsetted_x)
+            # print("rear_axel_offsetted_y : ", rear_axel_offsetted_y)
+
+            # calculate euclidian distance of vehicle to waypoint
+            L = np.sqrt((rear_axel_offsetted_y ** 2) + (rear_axel_offsetted_x ** 2))
+
+            # find angle from waypoint to rear axel
+            alpha = np.arctan2(rear_axel_offsetted_x, rear_axel_offsetted_y)
+
+            # print("alpha: ", alpha)
+
+            # goal speed is 1.5
+            # look ahead distance = K * goal speed
 
             # ----------------- tuning this part as needed -----------------
-            k       = 0.41 
-            angle_i = math.atan((k * 2 * self.wheelbase * math.sin(alpha)) / L) 
-            angle   = angle_i*2
+            k       = 0.8 # k value might need to be closer to 1 since goal speed is 1.5 m/s
+            angle_i = math.atan((k * 2 * self.wheelbase * math.sin(alpha)) / L) # maybe change this to not have k or k close to 1
+            angle   = angle_i*1.2
             # ----------------- tuning this part as needed -----------------
 
             f_delta = round(np.clip(angle, -0.61, 0.61), 3)
 
             f_delta_deg = np.degrees(f_delta)
+            # print("tire angle: ", f_delta_deg)
 
             # steering_angle in degrees
             steering_angle = self.front2steer(f_delta_deg)
+            print("steering angle: ", steering_angle)
 
-            if(self.gem_enable == True):
-                print("Current index: " + str(self.goal))
-                print("Forward velocity: " + str(self.speed))
-                ct_error = round(np.sin(alpha) * L, 3)
-                print("Crosstrack Error: " + str(ct_error))
-                print("Front steering angle: " + str(np.degrees(f_delta)) + " degrees")
-                print("Steering wheel angle: " + str(steering_angle) + " degrees" )
-                print("\n")
+            # if(self.gem_enable == True):
+            #     print("Current index: " + str(self.goal))
+            #     print("Forward velocity: " + str(self.speed))
+            #     ct_error = round(np.sin(alpha) * L, 3)
+            #     print("Crosstrack Error: " + str(ct_error))
+            #     print("Front steering angle: " + str(np.degrees(f_delta)) + " degrees")
+            #     print("Steering wheel angle: " + str(steering_angle) + " degrees" )
+            #     print("\n")
 
             current_time = rospy.get_time()
             filt_vel     = self.speed_filter.get_data(self.speed)
@@ -354,13 +385,25 @@ class PurePursuit(object):
             elif(f_delta_deg > 30):
                 self.turn_cmd.ui16_cmd = 2 # turn left
             else:
-                self.turn_cmd.ui16_cmd = 0 # turn right
+                self.turn_cmd.ui16_cmd = 0 # turn rightput_accel
+            # self.brake_cmd.f64_cmd = 0.0
 
-            self.accel_cmd.f64_cmd = output_accel
+            # lidar pedestrian detection stopping
+            if (lidar_reading_value[0] <= safe_breaking_distance):
+                self.accel_cmd.f64_cmd = 0.0
+                self.brake_cmd.f64_cmd = 0.3
+            else:
+                self.accel_cmd.f64_cmd = output_accel
+                self.brake_cmd.f64_cmd = 0.0
+
+            # self.accel_cmd.f64_cmd = output_accel
+            # self.brake_cmd.f64_cmd = 0.0
             self.steer_cmd.angular_position = np.radians(steering_angle)
             self.accel_pub.publish(self.accel_cmd)
             self.steer_pub.publish(self.steer_cmd)
             self.turn_pub.publish(self.turn_cmd)
+            self.brake_pub.publish(self.brake_cmd)
+
 
             self.rate.sleep()
 
@@ -378,5 +421,4 @@ def pure_pursuit():
 
 if __name__ == '__main__':
     pure_pursuit()
-
 
